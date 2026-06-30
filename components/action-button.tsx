@@ -12,12 +12,12 @@ type ActionButtonProps = {
 
 const toneStyles = {
   primary: {
-    backgroundColor: palette.black,
-    borderColor: palette.black,
+    backgroundColor: palette.coral,
+    borderColor: palette.coral,
     color: palette.white,
   },
   secondary: {
-    backgroundColor: palette.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.62)',
     borderColor: palette.line,
     color: palette.ink,
   },
@@ -66,7 +66,7 @@ export function ActionButton({
         style={{
           color: style.color,
           fontSize: 14,
-          fontWeight: '700',
+          fontWeight: '900',
           textAlign: 'center',
         }}>
         {label}

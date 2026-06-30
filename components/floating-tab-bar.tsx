@@ -1,6 +1,5 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedPressable } from '@/components/animated-pressable';
@@ -26,21 +25,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const insets = useSafeAreaInsets();
 
   return (
-    <Animated.View
-      layout={LinearTransition.springify().damping(18).stiffness(220)}
+    <View
       style={{
         position: 'absolute',
         left: 18,
         right: 18,
         bottom: Math.max(14, insets.bottom + 8),
-        height: 70,
+        height: 62,
         borderRadius: 999,
-        backgroundColor: palette.blueDeep,
-        padding: 7,
+        backgroundColor: palette.black,
+        padding: 6,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        boxShadow: `0 18px 36px ${palette.blueShadow}`,
+        boxShadow: `0 18px 36px ${palette.shadow}`,
       }}>
       {state.routes.map((route, index) => {
         const focused = state.index === index;
@@ -65,9 +63,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 navigation.navigate(route.name, route.params);
               }
             }}
-            pressedScale={0.94}
             style={{
-              height: 56,
+              height: 50,
               flex: focused ? 1.55 : 0.72,
               minWidth: focused ? 112 : 52,
               borderRadius: 999,
@@ -75,7 +72,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               justifyContent: 'center',
               flexDirection: 'row',
               gap: focused ? 7 : 0,
-              backgroundColor: focused ? palette.surface : 'rgba(255, 255, 255, 0.14)',
+              backgroundColor: focused ? palette.surface : 'rgba(255, 255, 255, 0.10)',
             }}>
             <IconSymbol
               name={meta?.icon ?? 'calendar'}
@@ -93,6 +90,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           </AnimatedPressable>
         );
       })}
-    </Animated.View>
+    </View>
   );
 }

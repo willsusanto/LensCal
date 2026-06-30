@@ -23,7 +23,7 @@ export function SegmentedControl<T extends string>({
         borderRadius: 999,
         borderWidth: 1,
         borderColor: palette.white,
-        backgroundColor: palette.faint,
+        backgroundColor: 'rgba(255, 255, 255, 0.54)',
         padding: 4,
         gap: 4,
         boxShadow: `0 8px 20px ${palette.softShadow}`,

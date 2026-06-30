@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
-import Animated, { FadeInUp, LinearTransition } from 'react-native-reanimated';
 
 import { AnimatedPressable } from '@/components/animated-pressable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Badge, Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
 import { daysRemaining, daysUsed, displayLensType, formatShortDate, lensDurationDays } from '@/lib/date-utils';
 import type { Eye, EyeState } from '@/types/lens';
@@ -77,22 +77,14 @@ export function LensCard({
   const accent = accentForEye(state.eye);
 
   return (
-    <Animated.View
-      entering={FadeInUp.duration(260).springify().damping(18).stiffness(160)}
-      layout={LinearTransition.springify().damping(18).stiffness(220)}
+    <Card
       style={{
         minWidth: 0,
         flex: 1,
         flexBasis: '48%',
         flexShrink: 1,
-        gap: compact ? 11 : 15,
-        borderRadius: 8,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        borderColor: palette.white,
-        backgroundColor: palette.surface,
-        padding: compact ? 11 : 13,
-        boxShadow: `0 18px 38px ${palette.softShadow}`,
+        gap: compact ? 9 : 11,
+        padding: compact ? 10 : 12,
       }}>
       <View style={{ alignItems: 'center', gap: compact ? 6 : 8 }}>
         <View
@@ -106,36 +98,20 @@ export function LensCard({
           <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
             {state.eye === 'left' ? 'LEFT EYE' : 'RIGHT EYE'}
           </Text>
-          <View
-            style={{
-              borderRadius: 999,
-              backgroundColor: lens ? palette.blueDeep : palette.faint,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-            }}>
-            <Text
-              selectable
-              style={{
-                color: lens ? palette.white : palette.muted,
-                fontSize: 10,
-                fontWeight: '900',
-              }}>
-              {lens ? 'TRACKING' : 'EMPTY'}
-            </Text>
-          </View>
+          <Badge tone={lens ? 'primary' : 'secondary'}>{lens ? 'TRACKING' : 'EMPTY'}</Badge>
         </View>
 
         <View
           style={{
-            width: compact ? 52 : 62,
-            height: compact ? 52 : 62,
-            borderRadius: compact ? 26 : 31,
+            width: compact ? 48 : 54,
+            height: compact ? 48 : 54,
+            borderRadius: compact ? 24 : 27,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: palette.blueGlow,
+            backgroundColor: palette.coralSoft,
             boxShadow: `0 10px 24px ${palette.softShadow}`,
           }}>
-          <IconSymbol name="eye.fill" color={accent.strong} size={compact ? 30 : 34} />
+          <IconSymbol name="eye.fill" color={accent.strong} size={compact ? 28 : 30} />
         </View>
 
         <View style={{ alignItems: 'center', gap: 3 }}>
@@ -211,7 +187,7 @@ export function LensCard({
       ) : (
         <View
           style={{
-            minHeight: compact ? 94 : 112,
+            minHeight: compact ? 76 : 86,
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 8,
@@ -224,7 +200,7 @@ export function LensCard({
             Start fresh
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
-            Open a pack and this side gets its own replacement date.
+            Open a pack for a fresh date.
           </Text>
         </View>
       )}
@@ -270,13 +246,13 @@ export function LensCard({
           disabled={disabled}
           onPress={() => router.push(`/replace-lens?eye=${state.eye}` as never)}
           style={{
-            minHeight: 44,
+            minHeight: 42,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
             gap: compact ? 6 : 8,
             borderRadius: 999,
-            backgroundColor: lens ? palette.black : palette.blueDeep,
+            backgroundColor: lens ? palette.black : palette.coral,
             opacity: disabled ? 0.45 : 1,
             paddingHorizontal: 10,
             paddingVertical: 10,
@@ -294,7 +270,6 @@ export function LensCard({
               accessibilityLabel={`Mark ${state.eye} lens uncomfortable`}
               disabled={disabled || !lens}
               onPress={() => onMarkUncomfortable(state.eye)}
-              pressedScale={0.94}
               style={{
                 minHeight: 42,
                 flex: 1,
@@ -314,7 +289,6 @@ export function LensCard({
               accessibilityLabel={`Discard ${state.eye} lens`}
               disabled={disabled || !lens}
               onPress={() => onDiscard(state.eye)}
-              pressedScale={0.94}
               style={{
                 minHeight: 42,
                 flex: 1,
@@ -331,6 +305,6 @@ export function LensCard({
           </View>
         ) : null}
       </View>
-    </Animated.View>
+    </Card>
   );
 }

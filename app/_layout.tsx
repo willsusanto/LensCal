@@ -24,7 +24,6 @@ export default function RootLayout() {
             options={{
               presentation: 'modal',
               title: 'Replace Lens',
-              animation: 'slide_from_bottom',
               headerShadowVisible: false,
               headerStyle: { backgroundColor: palette.background },
               headerTitleStyle: { color: palette.ink, fontWeight: '900' },

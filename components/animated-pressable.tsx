@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
@@ -15,7 +15,7 @@ export function AnimatedPressable({
   children,
   onPressIn,
   onPressOut,
-  pressedScale = 0.96,
+  pressedScale = 0.985,
   style,
   ...props
 }: AnimatedPressableProps) {
@@ -31,13 +31,13 @@ export function AnimatedPressable({
     <AnimatedPressableBase
       {...props}
       onPressIn={(event) => {
-        scale.value = withSpring(pressedScale, { damping: 18, stiffness: 420 });
-        opacity.value = withTiming(0.82, { duration: 90 });
+        scale.value = withTiming(pressedScale, { duration: 90 });
+        opacity.value = withTiming(0.94, { duration: 90 });
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        scale.value = withSpring(1, { damping: 18, stiffness: 420 });
-        opacity.value = withTiming(1, { duration: 120 });
+        scale.value = withTiming(1, { duration: 110 });
+        opacity.value = withTiming(1, { duration: 110 });
         onPressOut?.(event);
       }}
       style={[style, animatedStyle]}>
