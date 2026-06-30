@@ -100,23 +100,30 @@ export default function ReplaceLensScreen() {
           backgroundColor: palette.surface,
           padding: 16,
         }}>
+        <View
+          style={{
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            backgroundColor: palette.black,
+            padding: 14,
+            gap: 4,
+          }}>
+          <Text selectable style={{ color: '#A9D7FF', fontSize: 12, fontWeight: '900' }}>
+            REPLACEMENT DATE
+          </Text>
+          <Text selectable style={{ color: palette.white, fontSize: 24, fontWeight: '900' }}>
+            {formatShortDate(expiresAt)}
+          </Text>
+          <Text selectable style={{ color: '#C7D3E0', fontSize: 13, fontWeight: '700' }}>
+            {displayLensType(lensType)} lens opened today
+          </Text>
+        </View>
+
         <View style={{ gap: 8 }}>
           <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
             Lens Type
           </Text>
           <SegmentedControl options={lensOptions} value={lensType} disabled={isBusy} onChange={setLensType} />
-        </View>
-
-        <View style={{ gap: 6 }}>
-          <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
-            Replacement date
-          </Text>
-          <Text selectable style={{ color: palette.ink, fontSize: 17, fontWeight: '800' }}>
-            {formatShortDate(expiresAt)}
-          </Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
-            Based on a {displayLensType(lensType)} lens opened today.
-          </Text>
         </View>
 
         <View style={{ gap: 8 }}>
