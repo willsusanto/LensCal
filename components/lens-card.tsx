@@ -71,13 +71,7 @@ export function LensCard({
   const used = lens ? daysUsed(lens.opened_at) : 0;
   const remaining = lens ? daysRemaining(lens.expires_at) : 0;
   const progress = lens ? Math.min(1, used / duration) : 0;
-  const tone = lens
-    ? statusTone(remaining)
-    : {
-        label: 'No active lens',
-        backgroundColor: palette.faint,
-        color: palette.muted,
-      };
+  const tone = lens ? statusTone(remaining) : null;
   const accent = accentForEye(state.eye);
 
   return (
@@ -94,9 +88,39 @@ export function LensCard({
         borderColor: accent.border,
         backgroundColor: palette.surface,
         padding: compact ? 10 : 12,
-        boxShadow: '0 8px 20px rgba(18, 28, 25, 0.08)',
+        boxShadow: `0 12px 28px ${palette.shadow}`,
       }}>
       <View style={{ alignItems: 'center', gap: compact ? 6 : 8 }}>
+        <View
+          style={{
+            alignSelf: 'stretch',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}>
+          <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+            {state.eye === 'left' ? 'LEFT EYE' : 'RIGHT EYE'}
+          </Text>
+          <View
+            style={{
+              borderRadius: 999,
+              backgroundColor: lens ? palette.surfaceBlue : palette.faint,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+            }}>
+            <Text
+              selectable
+              style={{
+                color: lens ? palette.blueDeep : palette.muted,
+                fontSize: 10,
+                fontWeight: '900',
+              }}>
+              {lens ? 'TRACKING' : 'EMPTY'}
+            </Text>
+          </View>
+        </View>
+
         <View
           style={{
             width: compact ? 52 : 62,
@@ -122,60 +146,83 @@ export function LensCard({
               fontWeight: '700',
               textAlign: 'center',
             }}>
-            {lens ? `${displayLensType(lens.lens_type)} lens` : 'No lens'}
+            {lens ? `${displayLensType(lens.lens_type)} lens` : 'Ready to open'}
           </Text>
         </View>
 
-        <View
-          style={{
-            borderRadius: 999,
-            backgroundColor: tone.backgroundColor,
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-          }}>
-          <Text selectable style={{ color: tone.color, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
-            {compact && !lens ? 'Empty' : tone.label}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ alignItems: 'center', gap: 2 }}>
-        <Text selectable style={{ color: palette.muted, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
-          Day
-        </Text>
-        <Text
-          selectable
-          style={{
-            color: palette.ink,
-            fontSize: compact ? 42 : 48,
-            lineHeight: compact ? 46 : 52,
-            fontWeight: '900',
-            fontVariant: ['tabular-nums'],
-          }}>
-          {lens ? used : '-'}
-        </Text>
-        <Text selectable style={{ color: palette.muted, fontSize: compact ? 12 : 13, fontWeight: '700' }}>
-          of {duration}
-        </Text>
-        <View
-          style={{
-            width: '100%',
-            height: 6,
-            borderRadius: 999,
-            backgroundColor: palette.faint,
-            marginTop: 7,
-            overflow: 'hidden',
-          }}>
+        {tone ? (
           <View
             style={{
-              width: `${progress * 100}%`,
+              borderRadius: 999,
+              backgroundColor: tone.backgroundColor,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+            }}>
+            <Text selectable style={{ color: tone.color, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
+              {tone.label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {lens ? (
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Text selectable style={{ color: palette.muted, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
+            Day
+          </Text>
+          <Text
+            selectable
+            style={{
+              color: palette.ink,
+              fontSize: compact ? 42 : 48,
+              lineHeight: compact ? 46 : 52,
+              fontWeight: '900',
+              fontVariant: ['tabular-nums'],
+            }}>
+            {used}
+          </Text>
+          <Text selectable style={{ color: palette.muted, fontSize: compact ? 12 : 13, fontWeight: '700' }}>
+            of {duration}
+          </Text>
+          <View
+            style={{
+              width: '100%',
               height: 6,
               borderRadius: 999,
-              backgroundColor: remaining < 0 ? palette.danger : accent.rail,
-            }}
-          />
+              backgroundColor: palette.faint,
+              marginTop: 7,
+              overflow: 'hidden',
+            }}>
+            <View
+              style={{
+                width: `${progress * 100}%`,
+                height: 6,
+                borderRadius: 999,
+                backgroundColor: remaining < 0 ? palette.danger : accent.rail,
+              }}
+            />
+          </View>
         </View>
-      </View>
+      ) : (
+        <View
+          style={{
+            minHeight: compact ? 94 : 112,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            backgroundColor: palette.faint,
+            padding: 10,
+            gap: 5,
+          }}>
+          <Text selectable style={{ color: palette.ink, fontSize: compact ? 18 : 20, fontWeight: '900' }}>
+            Start fresh
+          </Text>
+          <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
+            Open a pack and this side gets its own replacement date.
+          </Text>
+        </View>
+      )}
 
       {lens ? (
         <View style={{ alignItems: 'center', gap: 5 }}>
@@ -232,51 +279,53 @@ export function LensCard({
           })}>
           <IconSymbol name="arrow.triangle.2.circlepath" color={palette.white} size={compact ? 17 : 18} />
           <Text selectable style={{ color: palette.white, fontSize: compact ? 12 : 13, fontWeight: '900' }}>
-            {lens ? 'Replace' : 'Open'}
+            {lens ? 'Replace' : 'Open pack'}
           </Text>
         </Pressable>
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Mark ${state.eye} lens uncomfortable`}
-            disabled={disabled || !lens}
-            onPress={() => onMarkUncomfortable(state.eye)}
-            style={({ pressed }) => ({
-              minHeight: 42,
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              borderWidth: 1,
-              borderColor: '#F1D596',
-              backgroundColor: palette.warningBg,
-              opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
-            })}>
-            <IconSymbol name="exclamationmark.triangle.fill" color={palette.warning} size={20} />
-          </Pressable>
+        {lens ? (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Mark ${state.eye} lens uncomfortable`}
+              disabled={disabled || !lens}
+              onPress={() => onMarkUncomfortable(state.eye)}
+              style={({ pressed }) => ({
+                minHeight: 42,
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: '#F1D596',
+                backgroundColor: palette.warningBg,
+                opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
+              })}>
+              <IconSymbol name="exclamationmark.triangle.fill" color={palette.warning} size={20} />
+            </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Discard ${state.eye} lens`}
-            disabled={disabled || !lens}
-            onPress={() => onDiscard(state.eye)}
-            style={({ pressed }) => ({
-              minHeight: 42,
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              borderWidth: 1,
-              borderColor: '#F0B7C0',
-              backgroundColor: palette.dangerBg,
-              opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
-            })}>
-            <IconSymbol name="trash.fill" color={palette.danger} size={20} />
-          </Pressable>
-        </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Discard ${state.eye} lens`}
+              disabled={disabled || !lens}
+              onPress={() => onDiscard(state.eye)}
+              style={({ pressed }) => ({
+                minHeight: 42,
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: '#F0B7C0',
+                backgroundColor: palette.dangerBg,
+                opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
+              })}>
+              <IconSymbol name="trash.fill" color={palette.danger} size={20} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );
