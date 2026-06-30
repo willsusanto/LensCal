@@ -1,5 +1,5 @@
-﻿import { AnimatedPressable } from '@/components/animated-pressable';
-import { palette } from '@/constants/palette';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type SegmentedControlProps<T extends string> = {
   options: { label: string; value: T }[];
@@ -15,29 +15,26 @@ export function SegmentedControl<T extends string>({
   disabled = false,
 }: SegmentedControlProps<T>) {
   return (
-    <div
-      className="flex rounded-full border p-1 gap-1"
-      style={{ borderColor: palette.line, backgroundColor: palette.surfaceSoft }}
-    >
+    <div className="grid grid-cols-3 gap-1 rounded-lg border border-line bg-surfaceSoft p-1">
       {options.map((option) => {
         const selected = option.value === value;
+
         return (
-          <AnimatedPressable
+          <Button
             key={option.value}
+            type="button"
+            variant="ghost"
             disabled={disabled}
-            pressedScale={0.97}
             onClick={() => onChange(option.value)}
-            className="flex-1 min-h-[38px] flex items-center justify-center rounded-full text-sm px-2 font-extrabold"
-            style={{
-              backgroundColor: selected ? palette.white : 'transparent',
-              color: selected ? palette.ink : palette.muted,
-              fontWeight: selected ? '800' : '700',
-              boxShadow: selected ? `0 8px 18px ` : undefined,
-              opacity: disabled ? 0.45 : undefined,
-            }}
+            className={cn(
+              "h-10 rounded-md px-2 shadow-none",
+              selected
+                ? "bg-white text-ink shadow-sm hover:bg-white"
+                : "text-muted hover:bg-white/60 hover:text-ink",
+            )}
           >
             {option.label}
-          </AnimatedPressable>
+          </Button>
         );
       })}
     </div>

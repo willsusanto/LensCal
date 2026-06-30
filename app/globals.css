@@ -2,25 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
-}
+@layer base {
+  :root {
+    --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-html,
-body {
-  height: 100%;
-}
+  html,
+  body {
+    height: 100%;
+  }
 
-body {
-  background-color: #f6fafe; /* palette.background */
-  color: #101216; /* palette.ink */
-  font-family: var(--font-jakarta), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    @apply bg-background text-ink font-sans antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }

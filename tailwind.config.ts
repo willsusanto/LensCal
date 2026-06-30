@@ -11,6 +11,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: palette,
+      boxShadow: {
+        card: `0 14px 34px ${palette.softShadow}`,
+        nav: `0 18px 36px ${palette.shadow}`,
+        action: `0 14px 28px ${palette.shadow}`,
+        blue: `0 14px 34px ${palette.blueShadow}`,
+      },
       fontFamily: {
         sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
       },
