@@ -1,3 +1,4 @@
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -5,15 +6,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionButton } from '@/components/action-button';
 import { Text, TextInput } from '@/components/app-text';
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { SegmentedControl } from '@/components/segmented-control';
 import { palette } from '@/constants/palette';
 import {
   displayLensType,
   expirationFor,
-  formatDateInput,
   formatShortDate,
-  parseDateInput,
   replacementDaysFor,
+  startOfLocalDay,
 } from '@/lib/date-utils';
 import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
@@ -35,24 +36,30 @@ export default function ReplaceLensScreen() {
   const eye = normalizeEye(params.eye);
   const { currentDate, settings, replaceLens, isBusy, eyes } = useLens();
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
-  const [startDateInput, setStartDateInput] = useState(formatDateInput(currentDate));
+  const [startDate, setStartDate] = useState(startOfLocalDay(currentDate));
+  const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const activeLens = eyes[eye].activeLens;
-  const startDate = parseDateInput(startDateInput);
-  const expiresAt = startDate
-    ? expirationFor(startDate, lensType, settings.monthlyReplacementDays)
-    : expirationFor(currentDate, lensType, settings.monthlyReplacementDays);
+  const expiresAt = expirationFor(startDate, lensType, settings.monthlyReplacementDays);
   const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
   const insets = useSafeAreaInsets();
 
   async function save() {
-    if (!startDate) {
-      return;
-    }
-
     await lightTap();
     await replaceLens(eye, lensType, notes.trim() || null, startDate);
     router.back();
+  }
+
+  function handleStartDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
+    if (process.env.EXPO_OS === 'android') {
+      setShowAndroidDatePicker(false);
+    }
+
+    if (event.type === 'dismissed' || !selectedDate) {
+      return;
+    }
+
+    setStartDate(startOfLocalDay(selectedDate));
   }
 
   return (
@@ -82,28 +89,46 @@ export default function ReplaceLensScreen() {
         <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '900' }}>
           START DATE
         </Text>
-        <TextInput
-          value={startDateInput}
-          onChangeText={setStartDateInput}
-          keyboardType="numbers-and-punctuation"
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={palette.muted}
-          style={{
-            minHeight: 48,
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            borderWidth: 1,
-            borderColor: startDate ? palette.line : palette.danger,
-            backgroundColor: palette.surfaceSoft,
-            paddingHorizontal: 12,
-            color: palette.ink,
-            fontSize: 22,
-            fontWeight: '900',
-          }}
-        />
-        <Text selectable style={{ color: startDate ? palette.muted : palette.danger, fontSize: 13, fontWeight: '700' }}>
-          {startDate ? formatShortDate(startDate) : 'Use YYYY-MM-DD, for example 2026-06-30.'}
-        </Text>
+        {process.env.EXPO_OS === 'ios' ? (
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display="compact"
+            onChange={handleStartDateChange}
+            style={{ alignSelf: 'flex-start' }}
+          />
+        ) : (
+          <>
+            <AnimatedPressable
+              accessibilityRole="button"
+              onPress={async () => {
+                await lightTap();
+                setShowAndroidDatePicker(true);
+              }}
+              style={{
+                minHeight: 50,
+                borderRadius: 8,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: palette.line,
+                backgroundColor: palette.surfaceSoft,
+                justifyContent: 'center',
+                paddingHorizontal: 12,
+              }}>
+              <Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '900' }}>
+                {formatShortDate(startDate)}
+              </Text>
+            </AnimatedPressable>
+            {showAndroidDatePicker ? (
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display="default"
+                onChange={handleStartDateChange}
+              />
+            ) : null}
+          </>
+        )}
       </View>
 
       <View
@@ -158,7 +183,7 @@ export default function ReplaceLensScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <ActionButton label={activeLens ? 'Change Lens' : 'Open Lens'} tone="primary" disabled={isBusy || !startDate} onPress={save} />
+        <ActionButton label={activeLens ? 'Change Lens' : 'Open Lens'} tone="primary" disabled={isBusy} onPress={save} />
         <ActionButton label="Cancel" disabled={isBusy} onPress={() => router.back()} />
       </View>
     </ScrollView>
