@@ -221,9 +221,8 @@ export async function openLens(input: {
 export async function setLensNotificationId(lensUsageId: string, notificationId: string | null) {
   const db = await getDatabase();
   await db.runAsync(
-    'UPDATE lens_usages SET notification_id = ?, updated_at = ?, dirty = 1 WHERE id = ?',
+    'UPDATE lens_usages SET notification_id = ? WHERE id = ?',
     notificationId,
-    nowIso(),
     lensUsageId,
   );
 }
