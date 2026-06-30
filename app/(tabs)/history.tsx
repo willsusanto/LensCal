@@ -123,16 +123,34 @@ export default function HistoryScreen() {
       ) : history.length === 0 ? (
         <View
           style={{
+            alignItems: 'center',
+            gap: 12,
             borderRadius: 8,
             borderCurve: 'continuous',
             borderWidth: 1,
-            borderColor: palette.line,
-            backgroundColor: palette.surface,
-            padding: 16,
+            borderColor: palette.lineStrong,
+            backgroundColor: palette.surfaceBlue,
+            padding: 22,
           }}>
-          <Text selectable style={{ color: palette.muted, fontSize: 15 }}>
-            No lens history yet.
-          </Text>
+          <View
+            style={{
+              width: 58,
+              height: 58,
+              borderRadius: 29,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.surface,
+            }}>
+            <IconSymbol name="eye.fill" color={palette.black} size={32} />
+          </View>
+          <View style={{ alignItems: 'center', gap: 4 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '900', textAlign: 'center' }}>
+              No history yet
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700', textAlign: 'center' }}>
+              Open or replace a lens and each eye will build its own timeline here.
+            </Text>
+          </View>
         </View>
       ) : (
         history.map((usage) => <UsageRow key={usage.id} usage={usage} events={events} />)

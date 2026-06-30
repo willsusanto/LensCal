@@ -29,7 +29,7 @@ function SectionTitle({ icon, title }: { icon: 'calendar' | 'bell.fill' | 'arrow
         }}>
         <IconSymbol name={icon} color={palette.black} size={22} />
       </View>
-      <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '900' }}>
+      <Text selectable style={{ color: palette.ink, fontSize: 17, fontWeight: '900' }}>
         {title}
       </Text>
     </View>
@@ -48,17 +48,17 @@ function Stepper({
   onIncrease: () => void;
 }) {
   return (
-    <View style={{ gap: 8 }}>
-      <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
+    <View style={{ gap: 6 }}>
+      <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '800' }}>
         {label}
       </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
         <Pressable
           accessibilityRole="button"
           onPress={onDecrease}
           style={{
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 8,
@@ -72,10 +72,10 @@ function Stepper({
         <Text
           selectable
           style={{
-            minWidth: 64,
+            minWidth: 56,
             textAlign: 'center',
             color: palette.ink,
-            fontSize: 20,
+            fontSize: 19,
             fontWeight: '800',
             fontVariant: ['tabular-nums'],
           }}>
@@ -85,8 +85,8 @@ function Stepper({
           accessibilityRole="button"
           onPress={onIncrease}
           style={{
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 8,
@@ -122,7 +122,7 @@ export default function SettingsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 112, gap: 16 }}>
+      contentContainerStyle={{ padding: 16, paddingBottom: 148, gap: 14 }}>
       <View style={{ gap: 4 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           Settings
@@ -134,13 +134,13 @@ export default function SettingsScreen() {
 
       <View
         style={{
-          gap: 14,
+          gap: 12,
           borderRadius: 8,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: palette.line,
           backgroundColor: palette.surface,
-          padding: 16,
+          padding: 14,
         }}>
         <SectionTitle icon="calendar" title="Lens Defaults" />
         <SegmentedControl
@@ -159,25 +159,25 @@ export default function SettingsScreen() {
             updateSetting('monthlyReplacementDays', Math.min(365, settings.monthlyReplacementDays + 1))
           }
         />
-        <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
+        <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
           New {displayLensType(settings.defaultLensType)} lenses use this default.
         </Text>
       </View>
 
       <View
         style={{
-          gap: 14,
+          gap: 12,
           borderRadius: 8,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: palette.line,
           backgroundColor: palette.surface,
-          padding: 16,
+          padding: 14,
         }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flexShrink: 1, gap: 4 }}>
             <SectionTitle icon="bell.fill" title="Local Reminders" />
-            <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
+            <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
               Scheduled on each device at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}.
             </Text>
           </View>
@@ -188,7 +188,7 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16 }}>
           <Stepper
             label="Hour"
             value={String(settings.reminderHour).padStart(2, '0')}
@@ -214,18 +214,18 @@ export default function SettingsScreen() {
 
       <View
         style={{
-          gap: 14,
+          gap: 12,
           borderRadius: 8,
           borderCurve: 'continuous',
           borderWidth: 1,
           borderColor: palette.line,
           backgroundColor: palette.surface,
-          padding: 16,
+          padding: 14,
         }}>
         <SectionTitle icon="arrow.triangle.2.circlepath" title="Supabase Sync" />
 
         {!isSupabaseConfigured ? (
-          <Text selectable style={{ color: palette.warning, fontSize: 14, fontWeight: '700' }}>
+          <Text selectable style={{ color: palette.warning, fontSize: 13, fontWeight: '800' }}>
             Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to enable auth and sync.
           </Text>
         ) : session ? (
@@ -244,6 +244,7 @@ export default function SettingsScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               placeholder="Email"
+              placeholderTextColor={palette.muted}
               value={email}
               onChangeText={setEmail}
               style={{
@@ -252,12 +253,14 @@ export default function SettingsScreen() {
                 borderCurve: 'continuous',
                 borderWidth: 1,
                 borderColor: palette.line,
+                backgroundColor: palette.surface,
                 paddingHorizontal: 12,
                 color: palette.ink,
               }}
             />
             <TextInput
               placeholder="Password"
+              placeholderTextColor={palette.muted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -267,6 +270,7 @@ export default function SettingsScreen() {
                 borderCurve: 'continuous',
                 borderWidth: 1,
                 borderColor: palette.line,
+                backgroundColor: palette.surface,
                 paddingHorizontal: 12,
                 color: palette.ink,
               }}
