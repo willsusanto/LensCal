@@ -1,81 +1,19 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+// Notifications are deferred — Web Push API implementation comes in a later step.
+// These stubs keep the build passing.
+import type { AppSettings, LensUsage } from '@/types/lens';
 
-import { formatShortDate } from '@/lib/date-utils';
-import type { AppSettings, Eye, LensUsage } from '@/types/lens';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
-const CHANNEL_ID = 'lens-replacements';
-
-export async function ensureNotificationPermissions() {
-  if (process.env.EXPO_OS === 'web') {
-    return false;
-  }
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Lens replacement reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
-  }
-
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
-    return true;
-  }
-
-  const requested = await Notifications.requestPermissionsAsync();
-  return requested.granted || requested.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function ensureNotificationPermissions(_lens?: LensUsage, _settings?: AppSettings): Promise<boolean> {
+  return false;
 }
 
-export async function cancelLensNotification(notificationId: string | null) {
-  if (!notificationId || process.env.EXPO_OS === 'web') {
-    return;
-  }
-
-  await Notifications.cancelScheduledNotificationAsync(notificationId);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function cancelLensNotification(_notificationId: string | null): Promise<void> {
+  // no-op
 }
 
-export async function scheduleReplacementNotification(lens: LensUsage, settings: AppSettings) {
-  if (!settings.notificationsEnabled || process.env.EXPO_OS === 'web') {
-    return null;
-  }
-
-  const granted = await ensureNotificationPermissions();
-  if (!granted) {
-    return null;
-  }
-
-  const triggerDate = new Date(lens.expires_at);
-  triggerDate.setHours(settings.reminderHour, settings.reminderMinute, 0, 0);
-
-  if (triggerDate.getTime() <= Date.now()) {
-    return null;
-  }
-
-  const eyeLabel = lens.eye === 'left' ? 'Left' : 'Right';
-
-  return Notifications.scheduleNotificationAsync({
-    content: {
-      title: `${eyeLabel} lens replacement`,
-      body: `Replace your ${lens.eye} lens by ${formatShortDate(lens.expires_at)}.`,
-      data: {
-        eye: lens.eye satisfies Eye,
-        lensUsageId: lens.id,
-      },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: triggerDate,
-      channelId: CHANNEL_ID,
-    },
-  });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function scheduleReplacementNotification(_lens: LensUsage, _settings: AppSettings): Promise<string | null> {
+  return null;
 }
+

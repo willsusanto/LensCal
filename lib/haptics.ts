@@ -1,17 +1,11 @@
-import * as Haptics from 'expo-haptics';
-
-export async function lightTap() {
-  if (process.env.EXPO_OS !== 'ios') {
-    return;
+export async function lightTap(): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(10);
   }
-
-  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 }
 
-export async function warningTap() {
-  if (process.env.EXPO_OS !== 'ios') {
-    return;
+export async function warningTap(): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate([10, 50, 10]);
   }
-
-  await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 }
