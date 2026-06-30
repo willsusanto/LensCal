@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { palette } from '@/constants/palette';
 import { createClient } from '@/lib/supabase/client';
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,13 +16,13 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
     setIsLoading(true);
+    const supabase = createClient();
 
     try {
       if (isSignUp) {

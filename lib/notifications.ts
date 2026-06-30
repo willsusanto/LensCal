@@ -1,19 +1,19 @@
-// Notifications are deferred — Web Push API implementation comes in a later step.
-// These stubs keep the build passing.
+// Notifications are deferred — Web Push implementation comes in a later step.
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { AppSettings, LensUsage } from '@/types/lens';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function ensureNotificationPermissions(_lens?: LensUsage, _settings?: AppSettings): Promise<boolean> {
+export async function ensureNotificationPermissions(): Promise<boolean> {
   return false;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function cancelLensNotification(_notificationId: string | null): Promise<void> {
-  // no-op
-}
+export async function cancelLensNotification(
+  _notificationId: string | null,
+): Promise<void> {}
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function scheduleReplacementNotification(_lens: LensUsage, _settings: AppSettings): Promise<string | null> {
+export async function scheduleReplacementNotification(
+  _lens: LensUsage,
+  _settings: AppSettings,
+): Promise<string | null> {
   return null;
 }
-
+/* eslint-enable @typescript-eslint/no-unused-vars */

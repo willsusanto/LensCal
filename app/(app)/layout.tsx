@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { LensProvider } from '@/providers/lens-provider';
 
+export const dynamic = 'force-dynamic';
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <LensProvider>
