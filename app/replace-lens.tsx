@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActionButton } from '@/components/action-button';
 import { Text, TextInput } from '@/components/app-text';
 import { SegmentedControl } from '@/components/segmented-control';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 import { displayLensType, expirationFor, formatShortDate, replacementDaysFor } from '@/lib/date-utils';
 import { lightTap } from '@/lib/haptics';
@@ -23,20 +22,6 @@ function normalizeEye(value: unknown): Eye {
   return value === 'right' ? 'right' : 'left';
 }
 
-function accentForEye(eye: Eye) {
-  return eye === 'left'
-    ? {
-        strong: palette.black,
-        soft: palette.surfaceBlue,
-        border: palette.lineStrong,
-      }
-    : {
-        strong: palette.black,
-        soft: palette.faint,
-        border: palette.line,
-      };
-}
-
 export default function ReplaceLensScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ eye?: string }>();
@@ -49,7 +34,6 @@ export default function ReplaceLensScreen() {
   const otherLens = eyes[otherEye].activeLens;
   const expiresAt = expirationFor(currentDate, lensType, settings.monthlyReplacementDays);
   const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
-  const accent = accentForEye(eye);
   const insets = useSafeAreaInsets();
 
   async function save() {
@@ -63,25 +47,16 @@ export default function ReplaceLensScreen() {
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 12, gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: 29,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: accent.soft,
-          }}>
-          <IconSymbol name="eye.fill" color={accent.strong} size={32} />
-        </View>
-
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900' }}>
-            {activeLens ? 'Change' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
+      <View style={{ gap: 6 }}>
+        <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900' }}>
+          {activeLens ? 'Change' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
+        </Text>
+        <View style={{ gap: 2 }}>
+          <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
+            Starts {formatShortDate(currentDate)}
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
-            Starts {formatShortDate(currentDate)}. Reminder: {formatShortDate(expiresAt)}
+            Reminder {formatShortDate(expiresAt)}
           </Text>
         </View>
       </View>
