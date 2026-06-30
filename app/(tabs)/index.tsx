@@ -3,9 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/app-text';
 import { LensCard } from '@/components/lens-card';
-import { Badge, Card } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
-import { formatReminderTime, formatShortDate } from '@/lib/date-utils';
+import { formatShortDate } from '@/lib/date-utils';
 import { useLens } from '@/providers/lens-provider';
 
 export default function TodayScreen() {
@@ -14,7 +14,6 @@ export default function TodayScreen() {
     eyes,
     isBusy,
     isReady,
-    settings,
     syncMessage,
   } = useLens();
   const { width } = useWindowDimensions();
@@ -58,13 +57,6 @@ export default function TodayScreen() {
           gap: 14,
           padding: 16,
         }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <Badge tone="secondary">TODAY</Badge>
-          <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '800' }}>
-            Reminder {formatReminderTime(settings.reminderHour, settings.reminderMinute)}
-          </Text>
-        </View>
-
         {/* Test date controls are intentionally hidden outside manual QA. */}
 
         <View style={{ gap: 7 }}>
