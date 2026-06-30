@@ -1,11 +1,15 @@
-import { ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text } from '@/components/app-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 import { displayLensType, formatDateTime, formatShortDate } from '@/lib/date-utils';
+import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
-import type { LensEvent, LensUsage } from '@/types/lens';
+import type { Eye, LensEvent, LensUsage } from '@/types/lens';
 
 function eventLabel(event: LensEvent) {
   switch (event.event_type) {
@@ -100,16 +104,89 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
   );
 }
 
+function EyeUsageTotal({
+  label,
+  count,
+  selected,
+  onPress,
+}: {
+  label: string;
+  count: number;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      pressedScale={0.98}
+      style={{
+        flex: 1,
+        borderRadius: 8,
+        borderCurve: 'continuous',
+        borderWidth: 1,
+        borderColor: selected ? palette.lineStrong : palette.line,
+        backgroundColor: selected ? palette.surfaceBlue : palette.surface,
+        padding: 14,
+        gap: 6,
+      }}>
+      <Text selectable style={{ color: selected ? palette.blueDeep : palette.muted, fontSize: 12, fontWeight: '900' }}>
+        {label.toUpperCase()}
+      </Text>
+      <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+        {count}
+      </Text>
+      <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
+        {count === 1 ? 'lens used' : 'lenses used'}
+      </Text>
+    </AnimatedPressable>
+  );
+}
+
 export default function HistoryScreen() {
   const { history, events, isReady } = useLens();
   const insets = useSafeAreaInsets();
+  const [selectedEyes, setSelectedEyes] = useState<Record<Eye, boolean>>({
+    left: true,
+    right: true,
+  });
+  const leftUsageTotal = history.filter((usage) => usage.eye === 'left').length;
+  const rightUsageTotal = history.filter((usage) => usage.eye === 'right').length;
+  const filteredHistory = history.filter((usage) => selectedEyes[usage.eye]);
+
+  async function toggleEye(eye: Eye) {
+    await lightTap();
+    setSelectedEyes((current) => {
+      const next = {
+        ...current,
+        [eye]: !current[eye],
+      };
+
+      if (!next.left && !next.right) {
+        return current;
+      }
+
+      return next;
+    });
+  }
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
+      stickyHeaderIndices={[0]}
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 112, gap: 16 }}>
-      <View style={{ gap: 4 }}>
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: insets.bottom + 112, gap: 16 }}>
+      <View
+        style={{
+          gap: 4,
+          backgroundColor: palette.background,
+          marginHorizontal: -16,
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 16,
+          paddingBottom: 12,
+          zIndex: 10,
+        }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           History
         </Text>
@@ -117,6 +194,23 @@ export default function HistoryScreen() {
           Past lenses and discomfort events.
         </Text>
       </View>
+
+      {isReady ? (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <EyeUsageTotal
+            label="Left eye"
+            count={leftUsageTotal}
+            selected={selectedEyes.left}
+            onPress={() => toggleEye('left')}
+          />
+          <EyeUsageTotal
+            label="Right eye"
+            count={rightUsageTotal}
+            selected={selectedEyes.right}
+            onPress={() => toggleEye('right')}
+          />
+        </View>
+      ) : null}
 
       {!isReady ? (
         <Text selectable style={{ color: palette.muted, fontSize: 16 }}>
@@ -155,7 +249,7 @@ export default function HistoryScreen() {
           </View>
         </View>
       ) : (
-        history.map((usage) => <UsageRow key={usage.id} usage={usage} events={events} />)
+        filteredHistory.map((usage) => <UsageRow key={usage.id} usage={usage} events={events} />)
       )}
     </ScrollView>
   );
