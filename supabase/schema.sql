@@ -14,6 +14,10 @@ create table if not exists public.lens_usages (
 create index if not exists lens_usages_user_eye_status_idx
   on public.lens_usages (user_id, eye, status, opened_at desc);
 
+create unique index if not exists lens_usages_one_active_per_eye_idx
+  on public.lens_usages (user_id, eye)
+  where status = 'active';
+
 create table if not exists public.lens_events (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,

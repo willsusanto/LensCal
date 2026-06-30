@@ -43,6 +43,10 @@ export async function initDatabase() {
     CREATE INDEX IF NOT EXISTS lens_usages_eye_status_idx
       ON lens_usages (eye, status, opened_at DESC);
 
+    CREATE UNIQUE INDEX IF NOT EXISTS lens_usages_one_active_per_eye_idx
+      ON lens_usages (eye)
+      WHERE status = 'active';
+
     CREATE TABLE IF NOT EXISTS lens_events (
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT,
