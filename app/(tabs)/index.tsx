@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/app-text';
 import { LensCard } from '@/components/lens-card';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Badge, Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
 import { formatReminderTime, formatShortDate } from '@/lib/date-utils';
@@ -34,9 +33,7 @@ export default function TodayScreen() {
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: insets.bottom + 112, gap: 16 }}>
       <View
         style={{
-          minHeight: insets.top + 68,
-          flexDirection: 'row',
-          alignItems: 'center',
+          gap: 4,
           backgroundColor: palette.background,
           marginHorizontal: -16,
           paddingHorizontal: 16,
@@ -44,22 +41,12 @@ export default function TodayScreen() {
           paddingBottom: 12,
           zIndex: 10,
         }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
-          <View
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: palette.black,
-            }}>
-            <IconSymbol name="eye.fill" color={palette.white} size={22} />
-          </View>
-          <Text selectable style={{ color: palette.ink, fontSize: compact ? 20 : 22, fontWeight: '900' }}>
-            LensCal
-          </Text>
-        </View>
+        <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
+          LensCal
+        </Text>
+        <Text selectable style={{ color: palette.muted, fontSize: 15, fontWeight: '700' }}>
+          Softlens care, made calmer.
+        </Text>
       </View>
 
       <Card
