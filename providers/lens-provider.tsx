@@ -41,7 +41,7 @@ type LensContextValue = {
   refresh: () => Promise<void>;
   advanceTestDay: () => void;
   resetTestDate: () => void;
-  replaceLens: (eye: Eye, lensType: LensType, notes?: string | null) => Promise<void>;
+  replaceLens: (eye: Eye, lensType: LensType, notes?: string | null, openedAt?: Date) => Promise<void>;
   discardLens: (eye: Eye) => Promise<void>;
   markUncomfortable: (eye: Eye, notes?: string | null) => Promise<void>;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
@@ -171,7 +171,7 @@ export function LensProvider({ children }: PropsWithChildren) {
   );
 
   const replaceLens = useCallback(
-    async (eye: Eye, lensType: LensType, notes?: string | null) => {
+    async (eye: Eye, lensType: LensType, notes?: string | null, openedAt = currentDate) => {
       await runAction(async () => {
         const current = eyes[eye].activeLens;
         if (current) {
@@ -182,7 +182,7 @@ export function LensProvider({ children }: PropsWithChildren) {
         const nextLens = await openLens({
           eye,
           lensType,
-          openedAt: currentDate,
+          openedAt,
           notes,
           userId: session?.user.id ?? null,
           monthlyReplacementDays: settings.monthlyReplacementDays,

@@ -7,7 +7,14 @@ import { ActionButton } from '@/components/action-button';
 import { Text, TextInput } from '@/components/app-text';
 import { SegmentedControl } from '@/components/segmented-control';
 import { palette } from '@/constants/palette';
-import { displayLensType, expirationFor, formatShortDate, replacementDaysFor } from '@/lib/date-utils';
+import {
+  displayLensType,
+  expirationFor,
+  formatDateInput,
+  formatShortDate,
+  parseDateInput,
+  replacementDaysFor,
+} from '@/lib/date-utils';
 import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
 import type { Eye, LensType } from '@/types/lens';
@@ -28,15 +35,23 @@ export default function ReplaceLensScreen() {
   const eye = normalizeEye(params.eye);
   const { currentDate, settings, replaceLens, isBusy, eyes } = useLens();
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
+  const [startDateInput, setStartDateInput] = useState(formatDateInput(currentDate));
   const [notes, setNotes] = useState('');
   const activeLens = eyes[eye].activeLens;
-  const expiresAt = expirationFor(currentDate, lensType, settings.monthlyReplacementDays);
+  const startDate = parseDateInput(startDateInput);
+  const expiresAt = startDate
+    ? expirationFor(startDate, lensType, settings.monthlyReplacementDays)
+    : expirationFor(currentDate, lensType, settings.monthlyReplacementDays);
   const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
   const insets = useSafeAreaInsets();
 
   async function save() {
+    if (!startDate) {
+      return;
+    }
+
     await lightTap();
-    await replaceLens(eye, lensType, notes.trim() || null);
+    await replaceLens(eye, lensType, notes.trim() || null, startDate);
     router.back();
   }
 
@@ -48,6 +63,9 @@ export default function ReplaceLensScreen() {
       <View style={{ gap: 6 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900' }}>
           {activeLens ? 'Change' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
+        </Text>
+        <Text selectable style={{ color: palette.muted, fontSize: 14, lineHeight: 21, fontWeight: '700' }}>
+          Set the cycle for this lens.
         </Text>
       </View>
 
@@ -64,8 +82,27 @@ export default function ReplaceLensScreen() {
         <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '900' }}>
           START DATE
         </Text>
-        <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900' }}>
-          {formatShortDate(currentDate)}
+        <TextInput
+          value={startDateInput}
+          onChangeText={setStartDateInput}
+          keyboardType="numbers-and-punctuation"
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={palette.muted}
+          style={{
+            minHeight: 48,
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            borderWidth: 1,
+            borderColor: startDate ? palette.line : palette.danger,
+            backgroundColor: palette.surfaceSoft,
+            paddingHorizontal: 12,
+            color: palette.ink,
+            fontSize: 22,
+            fontWeight: '900',
+          }}
+        />
+        <Text selectable style={{ color: startDate ? palette.muted : palette.danger, fontSize: 13, fontWeight: '700' }}>
+          {startDate ? formatShortDate(startDate) : 'Use YYYY-MM-DD, for example 2026-06-30.'}
         </Text>
       </View>
 
@@ -121,7 +158,7 @@ export default function ReplaceLensScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <ActionButton label={activeLens ? 'Change Lens' : 'Open Lens'} tone="primary" disabled={isBusy} onPress={save} />
+        <ActionButton label={activeLens ? 'Change Lens' : 'Open Lens'} tone="primary" disabled={isBusy || !startDate} onPress={save} />
         <ActionButton label="Cancel" disabled={isBusy} onPress={() => router.back()} />
       </View>
     </ScrollView>
