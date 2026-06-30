@@ -37,7 +37,7 @@ export default function ReplaceLensScreen() {
   const { currentDate, settings, replaceLens, isBusy, eyes } = useLens();
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
   const [startDate, setStartDate] = useState(startOfLocalDay(currentDate));
-  const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const activeLens = eyes[eye].activeLens;
   const expiresAt = expirationFor(startDate, lensType, settings.monthlyReplacementDays);
@@ -52,7 +52,7 @@ export default function ReplaceLensScreen() {
 
   function handleStartDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
     if (process.env.EXPO_OS === 'android') {
-      setShowAndroidDatePicker(false);
+      setShowDatePicker(false);
     }
 
     if (event.type === 'dismissed' || !selectedDate) {
@@ -89,22 +89,74 @@ export default function ReplaceLensScreen() {
         <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '900' }}>
           START DATE
         </Text>
-        {process.env.EXPO_OS === 'ios' ? (
-          <DateTimePicker
-            value={startDate}
-            mode="date"
-            display="compact"
-            onChange={handleStartDateChange}
-            style={{ alignSelf: 'flex-start' }}
-          />
-        ) : (
-          <>
-            <AnimatedPressable
-              accessibilityRole="button"
-              onPress={async () => {
-                await lightTap();
-                setShowAndroidDatePicker(true);
-              }}
+        <AnimatedPressable
+          accessibilityRole="button"
+          onPress={async () => {
+            await lightTap();
+            setShowDatePicker((visible) => !visible);
+          }}
+          style={{
+            minHeight: 54,
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            borderWidth: 1,
+            borderColor: showDatePicker ? palette.lineStrong : palette.line,
+            backgroundColor: palette.surfaceSoft,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            paddingHorizontal: 12,
+          }}>
+          <View style={{ gap: 2 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '900' }}>
+              {formatShortDate(startDate)}
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '800' }}>
+              Tap to change
+            </Text>
+          </View>
+          <View
+            style={{
+              borderRadius: 999,
+              backgroundColor: palette.surfaceBlue,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}>
+            <Text selectable style={{ color: palette.blueDeep, fontSize: 12, fontWeight: '900' }}>
+              EDIT
+            </Text>
+          </View>
+        </AnimatedPressable>
+
+        {showDatePicker ? (
+          process.env.EXPO_OS === 'ios' ? (
+            <View
+              style={{
+                borderRadius: 8,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: palette.line,
+                backgroundColor: palette.surfaceSoft,
+                overflow: 'hidden',
+              }}>
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display="spinner"
+                onChange={handleStartDateChange}
+                style={{ alignSelf: 'stretch' }}
+              />
+            </View>
+          ) : process.env.EXPO_OS === 'android' ? (
+            <DateTimePicker
+              value={startDate}
+              mode="date"
+              display="default"
+              onChange={handleStartDateChange}
+            />
+          ) : (
+            <View
               style={{
                 minHeight: 50,
                 borderRadius: 8,
@@ -118,17 +170,9 @@ export default function ReplaceLensScreen() {
               <Text selectable style={{ color: palette.ink, fontSize: 22, fontWeight: '900' }}>
                 {formatShortDate(startDate)}
               </Text>
-            </AnimatedPressable>
-            {showAndroidDatePicker ? (
-              <DateTimePicker
-                value={startDate}
-                mode="date"
-                display="default"
-                onChange={handleStartDateChange}
-              />
-            ) : null}
-          </>
-        )}
+            </View>
+          )
+        ) : null}
       </View>
 
       <View
