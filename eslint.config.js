@@ -1,10 +1,18 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require('eslint/config');
-const expoConfig = require('eslint-config-expo/flat');
+/* eslint-disable @typescript-eslint/no-require-imports */
+const nextVitals = require("eslint-config-next/core-web-vitals");
+const nextTypescript = require("eslint-config-next/typescript");
 
-module.exports = defineConfig([
-  expoConfig,
+/** @type {import('eslint').Linter.Config[]} */
+module.exports = [
+  ...nextVitals,
+  ...nextTypescript,
   {
-    ignores: ['dist/*'],
+    files: ["providers/lens-provider.tsx"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
   },
-]);
+  {
+    ignores: [".next/**", "public/sw.js", "public/swe-worker-*.js", "public/workbox-*.js"],
+  },
+];

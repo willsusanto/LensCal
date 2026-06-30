@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LensCal → Next.js PWA Migration Plan</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex) > * { min-width: 0; }
+    :where(p, h1, h2, h3, h4, h5, h6, li, td, th, .badge) { overflow-wrap: anywhere; }
+    body { font-family: system-ui, sans-serif; }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .priority-high { border-left: 3px solid oklch(var(--color-error) / 1); }
+    .priority-med  { border-left: 3px solid oklch(var(--color-warning) / 1); }
+    .priority-low  { border-left: 3px solid oklch(var(--color-success) / 1); }
+    code {
+      background: oklch(var(--color-base-200) / 1);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.82em;
+      font-family: ui-monospace, monospace;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.8rem;
+    }
+    pre {
+      background: oklch(var(--color-base-200) / 1);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      margin: 0.5rem 0;
+    }
+    .route-arrow { color: oklch(var(--color-base-content) / 0.4); margin: 0 0.35rem; }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content min-h-screen p-4 md:p-8">
+
+  <div class="max-w-4xl mx-auto flex flex-col gap-8">
+
+    <!-- Header -->
+    <div class="flex flex-col gap-2">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="badge badge-primary badge-soft badge-lg">Migration Plan</span>
+        <span class="badge badge-soft badge-lg">Expo SDK 54 → Next.js App Router</span>
+        <span class="badge badge-warning badge-soft badge-lg">PWA</span>
+      </div>
+      <h1 class="text-3xl font-black mt-1">LensCal → Next.js PWA</h1>
+      <p class="text-base-content/60 text-sm max-w-2xl">
+        Full conversion from a React Native Expo app to a Next.js 15 App Router PWA. Login is required; Supabase is the sole data source. SQLite, all native/iOS/Android dependencies, and offline-first sync are removed. Notifications are deferred.
+      </p>
+    </div>
+
+    <!-- Priorities Banner -->
+    <div role="alert" class="alert alert-info alert-soft">
+      <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg>
+      <div>
+        <strong>Priority order:</strong> UI migration + routing first (Steps 1–9). Settings screen (Step 10) second.  Notifications are explicitly deferred (Step 11).
+      </div>
+    </div>
+
+    <!-- Route Map -->
+    <div class="card card-border bg-base-100">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg">Route Mapping</h2>
+        <p class="text-sm text-base-content/60">Every Expo Router screen maps to a Next.js App Router equivalent.</p>
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Expo Router (current)</th>
+                <th>Next.js App Router (target)</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>app/_layout.tsx</code></td>
+                <td><code>app/layout.tsx</code></td>
+                <td>Root layout: font, providers, nav shell</td>
+              </tr>
+              <tr>
+                <td><code>app/(tabs)/_layout.tsx</code></td>
+                <td><code>app/(app)/layout.tsx</code></td>
+                <td>Authenticated shell with bottom nav bar</td>
+              </tr>
+              <tr>
+                <td><code>app/(tabs)/index.tsx</code></td>
+                <td><code>app/(app)/page.tsx</code></td>
+                <td>Today / dashboard screen</td>
+              </tr>
+              <tr>
+                <td><code>app/(tabs)/history.tsx</code></td>
+                <td><code>app/(app)/history/page.tsx</code></td>
+                <td>Lens usage history</td>
+              </tr>
+              <tr>
+                <td><code>app/(tabs)/settings.tsx</code></td>
+                <td><code>app/(app)/settings/page.tsx</code></td>
+                <td>User settings</td>
+              </tr>
+              <tr>
+                <td><code>app/replace-lens.tsx</code> (modal)</td>
+                <td><code>app/(app)/replace-lens/page.tsx</code></td>
+                <td>Full page on web; eye passed via <code>?eye=</code> search param</td>
+              </tr>
+              <tr>
+                <td class="text-base-content/40">—</td>
+                <td><code>app/login/page.tsx</code></td>
+                <td>New: email/password login + sign-up</td>
+              </tr>
+              <tr>
+                <td class="text-base-content/40">—</td>
+                <td><code>app/auth/callback/route.ts</code></td>
+                <td>New: Supabase Auth PKCE callback handler</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <h2 class="text-xl font-black -mb-4">Steps</h2>
+
+    <!-- Step 1 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">1</span>
+          <h3 class="font-black text-base">Scaffold the Next.js project</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Bootstrap a new Next.js 15 app <strong>alongside</strong> the Expo repo (or replace it in-place on the new branch). Use the App Router, TypeScript strict mode, Tailwind CSS, and the <code>@/*</code> import alias.</p>
+        <pre><code>npx create-next-app@latest . \
+  --typescript \
+  --tailwind \
+  --app \
+  --no-src-dir \
+  --import-alias "@/*" \
+  --turbopack</code></pre>
+        <ul class="text-sm flex flex-col gap-1 list-disc pl-5 text-base-content/80">
+          <li>Set <code>strict: true</code> in <code>tsconfig.json</code></li>
+          <li>Configure <code>@/*</code> alias pointing to project root (same as current Expo setup)</li>
+          <li>Keep the existing <code>types/</code>, <code>constants/</code>, and <code>lib/date-utils.ts</code> — they are pure TS and require zero changes</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">2</span>
+          <h3 class="font-black text-base">Strip all Expo / React Native dependencies</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Delete <code>package.json</code> dependencies that are native-only or Expo-specific. The new <code>package.json</code> should contain only what Next.js needs.</p>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead><tr><th>Remove</th><th>Keep / Replace with</th></tr></thead>
+            <tbody>
+              <tr><td><code>expo</code>, <code>expo-router</code>, <code>expo-*</code> (all)</td><td><code>next</code></td></tr>
+              <tr><td><code>react-native</code>, <code>react-native-*</code> (all)</td><td><code>react</code>, <code>react-dom</code></td></tr>
+              <tr><td><code>@react-navigation/*</code></td><td>Next.js router (built-in)</td></tr>
+              <tr><td><code>@expo/vector-icons</code></td><td><code>lucide-react</code></td></tr>
+              <tr><td><code>@react-native-async-storage/async-storage</code></td><td>(session handled by Supabase SSR)</td></tr>
+              <tr><td><code>@react-native-community/datetimepicker</code></td><td>HTML <code>&lt;input type="date"&gt;</code></td></tr>
+              <tr><td><code>eslint-config-expo</code></td><td><code>eslint-config-next</code></td></tr>
+              <tr><td><code>react-native-reanimated</code>, <code>react-native-worklets</code></td><td>CSS transitions / <code>framer-motion</code> (optional)</td></tr>
+              <tr><td><code>react-native-url-polyfill</code></td><td>(not needed in Node/browser)</td></tr>
+              <tr><td><code>expo-sqlite</code></td><td>Supabase (direct)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm text-base-content/70 mt-1">New dependencies to add:</p>
+        <pre><code>npm install @supabase/supabase-js @supabase/ssr lucide-react
+npm install next-pwa          # or: @ducanh2912/next-pwa</code></pre>
+        <p class="text-xs text-base-content/50">Keep <code>@supabase/supabase-js</code> — it is already a dependency. Add <code>@supabase/ssr</code> for server-side session handling.</p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">3</span>
+          <h3 class="font-black text-base">Configure PWA manifest + service worker</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">PWA installability requires a web manifest and a service worker. Use <code>next-pwa</code> to auto-generate the SW via Workbox, and create the manifest manually.</p>
+        <p class="text-sm font-bold mt-1">next.config.ts</p>
+        <pre><code>import withPWA from 'next-pwa';
+export default withPWA({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+})(nextConfig);</code></pre>
+        <p class="text-sm font-bold mt-1">public/manifest.json</p>
+        <pre><code>{
+  "name": "LensCal",
+  "short_name": "LensCal",
+  "description": "Contact lens replacement tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6FAFE",
+  "theme_color": "#101216",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}</code></pre>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Export existing app icons from the Expo <code>assets/images/</code> folder as <code>icon-192.png</code> and <code>icon-512.png</code> into <code>public/</code></li>
+          <li>Link the manifest in <code>app/layout.tsx</code> via Next.js <code>metadata.manifest</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">4</span>
+          <h3 class="font-black text-base">Set up design system (palette + fonts)</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Keep <code>constants/palette.ts</code> unchanged. Expose those values as CSS custom properties via Tailwind's theme config so they work in CSS files. Load Plus Jakarta Sans via <code>next/font/google</code>.</p>
+        <p class="text-sm font-bold mt-1">tailwind.config.ts — extend with palette tokens</p>
+        <pre><code>import { palette } from './constants/palette';
+export default {
+  theme: {
+    extend: {
+      colors: palette,
+      fontFamily: {
+        sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+};</code></pre>
+        <p class="text-sm font-bold mt-1">app/layout.tsx — load font</p>
+        <pre><code>import { Plus_Jakarta_Sans } from 'next/font/google';
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700', '800'],
+});</code></pre>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Delete <code>lib/app-fonts.ts</code> — font loading is handled by Next.js</li>
+          <li>Delete <code>components/app-text.tsx</code> — typography is now via CSS classes</li>
+          <li>Remove <code>assets/fonts/*.ttf</code> — Google Fonts CDN serves them</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">5</span>
+          <h3 class="font-black text-base">Rewrite Supabase client + auth middleware</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Login is now required. Replace <code>lib/supabase.ts</code> with two clients: a browser client and a server client (using <code>@supabase/ssr</code>). Add Next.js middleware to redirect unauthenticated users to <code>/login</code>.</p>
+        <div class="flex flex-col gap-2">
+          <div class="flex gap-2 items-start">
+            <span class="badge badge-soft badge-xs mt-1 shrink-0">new</span>
+            <div><code>lib/supabase/client.ts</code> — <code>createBrowserClient()</code> for Client Components</div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <span class="badge badge-soft badge-xs mt-1 shrink-0">new</span>
+            <div><code>lib/supabase/server.ts</code> — <code>createServerClient()</code> for Server Components + Route Handlers</div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <span class="badge badge-warning badge-soft badge-xs mt-1 shrink-0">new</span>
+            <div><code>middleware.ts</code> (project root) — refreshes session cookie on every request; redirects to <code>/login</code> if no valid session</div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <span class="badge badge-warning badge-soft badge-xs mt-1 shrink-0">new</span>
+            <div><code>app/auth/callback/route.ts</code> — exchanges Supabase PKCE code for a session, then redirects to <code>/</code></div>
+          </div>
+        </div>
+        <p class="text-sm text-base-content/70">Rename env vars:</p>
+        <pre><code>EXPO_PUBLIC_SUPABASE_URL   →  NEXT_PUBLIC_SUPABASE_URL
+EXPO_PUBLIC_SUPABASE_ANON_KEY  →  NEXT_PUBLIC_SUPABASE_ANON_KEY</code></pre>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">6</span>
+          <h3 class="font-black text-base">Create the login page</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">All routes except <code>/login</code> and <code>/auth/callback</code> are protected by middleware. The login page must handle both sign-in and sign-up.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>File: <code>app/login/page.tsx</code> — Client Component</li>
+          <li>Email + password fields; toggle between Sign In / Sign Up</li>
+          <li>On success, Supabase triggers the auth callback which sets the session cookie and redirects to <code>/</code></li>
+          <li>Show error state inline (invalid credentials, etc.)</li>
+          <li>Port <code>signIn</code> / <code>signUp</code> logic from <code>LensProvider</code> directly into the page actions</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">7</span>
+          <h3 class="font-black text-base">Rewrite the data layer (Supabase-only)</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Delete <code>lib/local-db.ts</code> and <code>lib/sync.ts</code>. All reads/writes go directly to Supabase. Create a thin data-access layer at <code>lib/data.ts</code>.</p>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead><tr><th>Old (local-db)</th><th>New (lib/data.ts)</th></tr></thead>
+            <tbody>
+              <tr><td><code>getActiveLenses()</code></td><td><code>supabase.from('lens_usages').select('*').eq('status','active')</code></td></tr>
+              <tr><td><code>getLensHistory()</code></td><td><code>supabase.from('lens_usages').select('*').order('opened_at', ascending: false)</code></td></tr>
+              <tr><td><code>getEvents()</code></td><td><code>supabase.from('lens_events').select('*').order('event_at', ascending: false)</code></td></tr>
+              <tr><td><code>openLens()</code></td><td><code>supabase.from('lens_usages').insert()</code></td></tr>
+              <tr><td><code>discardLens()</code></td><td><code>supabase.from('lens_usages').update({status:'discarded'})</code></td></tr>
+              <tr><td><code>insertEvent()</code></td><td><code>supabase.from('lens_events').insert()</code></td></tr>
+              <tr><td><code>getSettings()</code> + <code>updateSetting()</code></td><td><code>supabase.from('user_settings').upsert()</code> (new table — see Step 8)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Remove <code>dirty</code> field from <code>LensUsage</code> and <code>LensEvent</code> types — no longer needed</li>
+          <li>Remove <code>notification_id</code> from <code>LensUsage</code> type (deferred to notifications step)</li>
+          <li><code>user_id</code> is always the authenticated user's UUID — always filter by it</li>
+          <li>IDs remain client-side generated with the same pattern</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">8</span>
+          <h3 class="font-black text-base">Add <code>user_settings</code> table to Supabase schema</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Settings were stored in SQLite. In the PWA they live in Supabase so they persist across devices and browsers.</p>
+        <pre><code>create table if not exists public.user_settings (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  default_lens_type text not null default 'monthly',
+  monthly_replacement_days integer not null default 28,
+  notifications_enabled boolean not null default true,
+  reminder_hour integer not null default 8,
+  reminder_minute integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+alter table public.user_settings enable row level security;
+create policy "Users manage own settings"
+  on public.user_settings for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</code></pre>
+        <p class="text-xs text-base-content/50">Add this to <code>supabase/schema.sql</code>. Settings are upserted on first login and on every change.</p>
+      </div>
+    </div>
+
+    <!-- Step 9 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">9</span>
+          <h3 class="font-black text-base">Adapt LensProvider to the web environment</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Keep the <code>LensProvider</code> / <code>useLens()</code> pattern. Remove Expo-specific imports and SQLite calls. The provider becomes a <code>'use client'</code> component that calls <code>lib/data.ts</code>.</p>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead><tr><th>Remove from LensProvider</th><th>Replace with</th></tr></thead>
+            <tbody>
+              <tr><td>All <code>local-db</code> imports</td><td><code>lib/data.ts</code> functions</td></tr>
+              <tr><td><code>cancelLensNotification</code>, <code>scheduleReplacementNotification</code></td><td>No-op stubs for now (deferred)</td></tr>
+              <tr><td><code>testDateOffsetDays</code>, <code>advanceTestDay</code>, <code>resetTestDate</code></td><td>Remove (QA-only)</td></tr>
+              <tr><td><code>isSupabaseConfigured</code> check</td><td>Always configured — remove the guard</td></tr>
+              <tr><td><code>syncNow()</code></td><td>Remove (no more dirty-flag sync)</td></tr>
+              <tr><td><code>signIn</code>, <code>signUp</code>, <code>signOut</code></td><td>Keep; wire to Supabase browser client</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm text-base-content/70 mt-2">The <code>LensContextValue</code> interface slims down significantly — expose <code>eyes</code>, <code>history</code>, <code>events</code>, <code>settings</code>, <code>isReady</code>, <code>isBusy</code>, and the five action functions.</p>
+      </div>
+    </div>
+
+    <!-- Step 10 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">10</span>
+          <h3 class="font-black text-base">Build the root layout + navigation shell</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">The root <code>app/layout.tsx</code> sets up fonts, global CSS, and metadata. The authenticated shell <code>app/(app)/layout.tsx</code> wraps pages in <code>LensProvider</code> and renders the bottom nav bar.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li><strong>Root layout</strong>: attach Plus Jakarta Sans CSS variable, link <code>/manifest.json</code>, set <code>theme-color</code> meta tag, import global CSS</li>
+          <li><strong>App shell layout</strong>: <code>'use client'</code>; wraps children with <code>&lt;LensProvider&gt;</code>; renders a fixed bottom nav with three tabs (Today / History / Settings); uses Next.js <code>usePathname()</code> to highlight the active tab</li>
+          <li>Bottom nav replaces <code>components/floating-tab-bar.tsx</code> — rewrite as a plain HTML <code>&lt;nav&gt;</code> with CSS, keeping the same dark pill aesthetic from <code>palette.black</code></li>
+          <li>Page content area gets <code>padding-bottom: 5rem</code> to clear the nav bar</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 11 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">11</span>
+          <h3 class="font-black text-base">Migrate shared components</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Replace React Native primitives with HTML + CSS equivalents. Keep the same component filenames and props where possible.</p>
+        <div class="overflow-x-auto">
+          <table class="table table-xs">
+            <thead><tr><th>Old component</th><th>Web equivalent</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><code>components/app-text.tsx</code></td><td>Remove — use <code>&lt;p&gt;</code>, <code>&lt;h1&gt;</code>, <code>&lt;input&gt;</code> with Tailwind font classes</td><td>Delete</td></tr>
+              <tr><td><code>components/animated-pressable.tsx</code></td><td><code>&lt;button&gt;</code> with CSS <code>active:scale-[0.985] transition-transform</code></td><td>Rewrite</td></tr>
+              <tr><td><code>components/action-button.tsx</code></td><td><code>&lt;button&gt;</code> with Tailwind classes matching palette</td><td>Rewrite</td></tr>
+              <tr><td><code>components/segmented-control.tsx</code></td><td>Inline radio-button group styled as a pill toggle</td><td>Rewrite</td></tr>
+              <tr><td><code>components/ui/primitives.tsx</code> (Card)</td><td><code>&lt;div&gt;</code> with border, rounded corners, shadow via Tailwind</td><td>Rewrite</td></tr>
+              <tr><td><code>components/ui/icon-symbol.tsx</code></td><td><code>lucide-react</code> icon components</td><td>Rewrite</td></tr>
+              <tr><td><code>components/floating-tab-bar.tsx</code></td><td>Inline in app shell layout (see Step 10)</td><td>Delete</td></tr>
+              <tr><td><code>lib/haptics.ts</code></td><td><a href="https://developer.mozilla.org/en-US/docs/Web/API/Vibration_API" class="link">Vibration API</a> shim or remove</td><td>Simplify</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 12 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">12</span>
+          <h3 class="font-black text-base">Port the Today screen (<code>app/(app)/page.tsx</code>)</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Direct port of <code>app/(tabs)/index.tsx</code>. Replace React Native layout primitives with <code>&lt;div&gt;</code> + Tailwind flexbox. The logic (nearest lens calculation) is unchanged.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li><code>'use client'</code> component — consumes <code>useLens()</code></li>
+          <li>"NEXT REPLACEMENT" summary card at the top with the date from <code>nearestLens.expires_at</code></li>
+          <li>Two <code>&lt;LensCard&gt;</code> components (left / right eye)</li>
+          <li><code>LensCard</code> rewritten to use <code>&lt;div&gt;</code> layout (see Step 11)</li>
+          <li>Click on a card's CTA navigates to <code>/replace-lens?eye=left</code> via <code>useRouter().push()</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 13 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">13</span>
+          <h3 class="font-black text-base">Port the Replace Lens screen (<code>app/(app)/replace-lens/page.tsx</code>)</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Previously a stack modal. On web it becomes a full page. The <code>?eye=</code> search param is read via Next.js <code>useSearchParams()</code>.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li><code>'use client'</code>; reads <code>searchParams.eye</code></li>
+          <li>Lens type selector: reuse <code>SegmentedControl</code> (rewritten)</li>
+          <li>Start date: HTML <code>&lt;input type="date"&gt;</code> replaces <code>@react-native-community/datetimepicker</code></li>
+          <li>Notes: HTML <code>&lt;textarea&gt;</code></li>
+          <li>Expiry preview: same <code>expirationFor()</code> from <code>lib/date-utils.ts</code> — zero changes</li>
+          <li>Save calls <code>replaceLens()</code> from <code>useLens()</code>, then <code>router.push('/')</code></li>
+          <li>Add a back <code>&lt;button&gt;</code> at the top of the page (replaces modal close button)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 14 -->
+    <div class="card card-border bg-base-100 priority-high">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-error text-error-content">14</span>
+          <h3 class="font-black text-base">Port the History screen (<code>app/(app)/history/page.tsx</code>)</h3>
+          <span class="badge badge-error badge-soft ml-auto">Priority: NOW</span>
+        </div>
+        <p class="text-sm text-base-content/70">Direct port of <code>app/(tabs)/history.tsx</code>. The per-usage event timeline is a list of <code>&lt;div&gt;</code> rows.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li><code>'use client'</code>; consumes <code>useLens()</code> for <code>history</code> and <code>events</code></li>
+          <li>Each <code>UsageRow</code> rewritten as a <code>&lt;div&gt;</code> card with inline event log</li>
+          <li>Status badge (ACTIVE / DISCARDED) uses Tailwind pill styles matching <code>palette.surfaceBlue</code> / <code>palette.faint</code></li>
+          <li>Replace <code>IconSymbol name="eye.fill"</code> with <code>lucide-react &lt;Eye /&gt;</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 15 -->
+    <div class="card card-border bg-base-100 priority-med">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-warning text-warning-content">15</span>
+          <h3 class="font-black text-base">Port the Settings screen (<code>app/(app)/settings/page.tsx</code>)</h3>
+          <span class="badge badge-warning badge-soft ml-auto">Priority: NEXT</span>
+        </div>
+        <p class="text-sm text-base-content/70">Port <code>app/(tabs)/settings.tsx</code>. Most UI is straightforward; the stepper widget and <code>SegmentedControl</code> are the main pieces to rewrite.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Default lens type: reuse <code>SegmentedControl</code></li>
+          <li>Monthly replacement days: <code>&lt;input type="number"&gt;</code> with increment/decrement buttons (replaces <code>Stepper</code>)</li>
+          <li>Notifications toggle: HTML <code>&lt;input type="checkbox" role="switch"&gt;</code> — mark the reminder time fields as disabled + greyed when off; <em>notifications themselves are deferred</em></li>
+          <li>Reminder time: two <code>&lt;input type="number"&gt;</code> for hour/minute</li>
+          <li>Sign out button at the bottom calls <code>signOut()</code> from <code>useLens()</code>, which redirects to <code>/login</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 16 -->
+    <div class="card card-border bg-base-100 priority-low">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-success text-success-content">16</span>
+          <h3 class="font-black text-base">Notifications (deferred)</h3>
+          <span class="badge badge-success badge-soft ml-auto">Priority: LATER</span>
+        </div>
+        <p class="text-sm text-base-content/70">PWA push notifications require a VAPID-based Web Push setup. This replaces <code>lib/notifications.ts</code>.</p>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Use the <a class="link" href="https://web.dev/push-notifications-overview/">Web Push API</a> via the browser's <code>PushManager</code></li>
+          <li>Service worker (already present from next-pwa) handles <code>push</code> events</li>
+          <li>A Supabase Edge Function or Next.js API route sends the push payload at the right time</li>
+          <li>Store the <code>PushSubscription</code> JSON in a new <code>push_subscriptions</code> Supabase table</li>
+          <li><strong>For now:</strong> replace <code>lib/notifications.ts</code> with an empty stub that exports no-op functions so the build passes</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 17 -->
+    <div class="card card-border bg-base-100 priority-low">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="step-num bg-success text-success-content">17</span>
+          <h3 class="font-black text-base">Clean up + update AGENTS.md</h3>
+          <span class="badge badge-success badge-soft ml-auto">Priority: LATER</span>
+        </div>
+        <ul class="text-sm list-disc pl-5 text-base-content/80 flex flex-col gap-1">
+          <li>Delete all remaining Expo/RN files: <code>app.json</code>, <code>metro.config.js</code>, <code>scripts/reset-project.js</code>, <code>components/haptic-tab.tsx</code>, <code>components/hello-wave.tsx</code>, <code>components/parallax-scroll-view.tsx</code>, <code>components/external-link.tsx</code>, <code>components/themed-text.tsx</code>, <code>components/themed-view.tsx</code>, <code>hooks/use-color-scheme*</code></li>
+          <li>Update <code>AGENTS.md</code> to reflect the new Next.js stack</li>
+          <li>Run <code>npm run lint</code> and fix any remaining type errors</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Risks -->
+    <div class="card card-border bg-base-100">
+      <div class="card-body gap-4">
+        <h2 class="card-title text-lg">Risks &amp; Migration Concerns</h2>
+        <div class="flex flex-col gap-3">
+
+          <div role="alert" class="alert alert-warning alert-soft alert-sm">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg>
+            <div>
+              <strong>No data migration path.</strong> Existing users who tracked lenses in the Expo app's SQLite DB will lose local data. Since Supabase sync was optional, users who did not sign in will have no cloud copy. This is acceptable if the PWA is a fresh deployment for a new audience.
+            </div>
+          </div>
+
+          <div role="alert" class="alert alert-warning alert-soft alert-sm">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg>
+            <div>
+              <strong>Offline support is removed.</strong> The new app requires a network connection for every read/write. PWA install and service worker caching will serve the app shell offline, but data won't be available without internet.
+            </div>
+          </div>
+
+          <div role="alert" class="alert alert-info alert-soft alert-sm">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg>
+            <div>
+              <strong>Supabase RLS schema change.</strong> The existing <code>lens_usages</code> partial unique index is per-user (<code>user_id, eye</code> where <code>status = 'active'</code>). Verify the Supabase schema matches before first write, or the one-active-lens constraint won't hold.
+            </div>
+          </div>
+
+          <div role="alert" class="alert alert-info alert-soft alert-sm">
+            <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg>
+            <div>
+              <strong>Date input UX regression.</strong> The native date picker (<code>@react-native-community/datetimepicker</code>) is replaced with <code>&lt;input type="date"&gt;</code>. Browser date pickers vary widely in UX. Consider a lightweight library like <code>react-day-picker</code> if the default is unacceptable.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary checklist -->
+    <div class="card card-border bg-base-100">
+      <div class="card-body gap-3">
+        <h2 class="card-title text-lg">Implementation Checklist</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 1 — Scaffold Next.js project</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 2 — Strip Expo/RN deps</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 3 — PWA manifest + SW</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 4 — Design system (palette + fonts)</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 5 — Supabase client + middleware</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 6 — Login page</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 7 — Rewrite data layer</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 8 — user_settings table</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 9 — Adapt LensProvider</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 10 — Root layout + nav shell</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 11 — Migrate shared components</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 12 — Today screen</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 13 — Replace Lens screen</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 14 — History screen</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 15 — Settings screen</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 16 — Notifications (deferred)</label>
+          <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" /> Step 17 — Cleanup + AGENTS.md</label>
+        </div>
+      </div>
+    </div>
+
+    <footer class="text-xs text-base-content/40 text-center pb-4">
+      LensCal PWA Migration Plan — generated 2026-06-30
+    </footer>
+
+  </div>
+</body>
+</html>

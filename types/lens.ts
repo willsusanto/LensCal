@@ -15,10 +15,8 @@ export type LensUsage = {
   lens_type: LensType;
   status: LensStatus;
   notes: string | null;
-  notification_id: string | null;
   created_at: string;
   updated_at: string;
-  dirty: number;
 };
 
 export type LensEvent = {
@@ -29,7 +27,6 @@ export type LensEvent = {
   event_at: string;
   notes: string | null;
   created_at: string;
-  dirty: number;
 };
 
 export type AppSettings = {

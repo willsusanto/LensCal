@@ -1,47 +1,22 @@
-import type { ComponentProps, ReactNode } from 'react';
-import { Pressable } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
+import { cn } from "@/lib/utils";
 
-type PressableProps = ComponentProps<typeof Pressable>;
-
-type AnimatedPressableProps = PressableProps & {
+type AnimatedPressableProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
-  pressedScale?: number;
 };
 
 export function AnimatedPressable({
   children,
-  onPressIn,
-  onPressOut,
-  pressedScale = 0.985,
-  style,
+  className,
   ...props
 }: AnimatedPressableProps) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
-
   return (
-    <AnimatedPressableBase
+    <button
       {...props}
-      onPressIn={(event) => {
-        scale.value = withTiming(pressedScale, { duration: 90 });
-        opacity.value = withTiming(0.94, { duration: 90 });
-        onPressIn?.(event);
-      }}
-      onPressOut={(event) => {
-        scale.value = withTiming(1, { duration: 110 });
-        opacity.value = withTiming(1, { duration: 110 });
-        onPressOut?.(event);
-      }}
-      style={[style, animatedStyle]}>
+      className={cn("transition-[transform,opacity] duration-100 active:scale-[0.985] active:opacity-95", className)}
+    >
       {children}
-    </AnimatedPressableBase>
+    </button>
   );
 }
