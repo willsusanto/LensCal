@@ -81,7 +81,7 @@ export default function HistoryScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}>
+      contentContainerStyle={{ padding: 16, paddingBottom: 112, gap: 16 }}>
       <View style={{ gap: 4 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           History
