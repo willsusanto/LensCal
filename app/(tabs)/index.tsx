@@ -2,7 +2,7 @@ import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native
 
 import { LensCard } from '@/components/lens-card';
 import { palette } from '@/constants/palette';
-import { formatReminderTime } from '@/lib/date-utils';
+import { daysRemaining, formatReminderTime, formatShortDate } from '@/lib/date-utils';
 import { lightTap, warningTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
 import type { Eye } from '@/types/lens';
@@ -12,6 +12,11 @@ export default function TodayScreen() {
   const { width } = useWindowDimensions();
   const compact = width < 390;
   const panelGap = compact ? 8 : 10;
+  const activeLenses = [eyes.left.activeLens, eyes.right.activeLens].filter(Boolean);
+  const nearestLens = activeLenses
+    .slice()
+    .sort((a, b) => new Date(a!.expires_at).getTime() - new Date(b!.expires_at).getTime())[0];
+  const nearestRemaining = nearestLens ? daysRemaining(nearestLens.expires_at) : null;
 
   async function handleMarkUncomfortable(eye: Eye) {
     await lightTap();
@@ -39,13 +44,72 @@ export default function TodayScreen() {
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: 112, gap: 16 }}>
-      <View style={{ gap: 4 }}>
-        <Text selectable style={{ color: palette.ink, fontSize: compact ? 30 : 34, fontWeight: '900' }}>
-          Today
-        </Text>
-        <Text selectable style={{ color: palette.muted, fontSize: compact ? 14 : 15 }}>
-          Replacement reminders at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}
-        </Text>
+      <View
+        style={{
+          gap: 14,
+          borderRadius: 8,
+          borderCurve: 'continuous',
+          borderWidth: 1,
+          borderColor: palette.line,
+          backgroundColor: palette.surface,
+          padding: 16,
+          boxShadow: '0 10px 30px rgba(5, 7, 10, 0.08)',
+        }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ gap: 3, flexShrink: 1 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: compact ? 28 : 32, fontWeight: '900' }}>
+              Today
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: compact ? 13 : 14, fontWeight: '700' }}>
+              Reminder at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              minWidth: 72,
+              alignItems: 'center',
+              borderRadius: 8,
+              borderCurve: 'continuous',
+              backgroundColor: palette.surfaceBlue,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+            }}>
+            <Text selectable style={{ color: palette.blueDeep, fontSize: 11, fontWeight: '900' }}>
+              ACTIVE
+            </Text>
+            <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
+              {activeLenses.length}/2
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={{
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            backgroundColor: palette.black,
+            padding: 14,
+            gap: 4,
+          }}>
+          <Text selectable style={{ color: '#A9D7FF', fontSize: 12, fontWeight: '900' }}>
+            NEXT REPLACEMENT
+          </Text>
+          <Text selectable style={{ color: palette.white, fontSize: compact ? 19 : 22, fontWeight: '900' }}>
+            {nearestLens
+              ? `${nearestLens.eye === 'left' ? 'Left' : 'Right'} · ${formatShortDate(nearestLens.expires_at)}`
+              : 'No active lenses'}
+          </Text>
+          <Text selectable style={{ color: '#C7D3E0', fontSize: 13, fontWeight: '700' }}>
+            {nearestLens
+              ? nearestRemaining === 0
+                ? 'Due today'
+                : nearestRemaining! < 0
+                  ? `${Math.abs(nearestRemaining!)} day${Math.abs(nearestRemaining!) === 1 ? '' : 's'} overdue`
+                  : `${nearestRemaining} day${nearestRemaining === 1 ? '' : 's'} remaining`
+              : 'Open left or right lens to start tracking.'}
+          </Text>
+        </View>
       </View>
 
       {!isReady ? (
