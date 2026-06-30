@@ -48,6 +48,7 @@ type LensContextValue = {
 
 const defaultSettings: AppSettings = {
   defaultLensType: 'monthly',
+  monthlyReplacementDays: 28,
   notificationsEnabled: true,
   reminderHour: 8,
   reminderMinute: 0,
@@ -176,6 +177,7 @@ export function LensProvider({ children }: PropsWithChildren) {
           lensType,
           notes,
           userId: session?.user.id ?? null,
+          monthlyReplacementDays: settings.monthlyReplacementDays,
         });
         const notificationId = await scheduleReplacementNotification(nextLens, settings);
         if (notificationId) {

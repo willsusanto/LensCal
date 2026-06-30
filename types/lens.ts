@@ -34,6 +34,7 @@ export type LensEvent = {
 
 export type AppSettings = {
   defaultLensType: LensType;
+  monthlyReplacementDays: number;
   notificationsEnabled: boolean;
   reminderHour: number;
   reminderMinute: number;

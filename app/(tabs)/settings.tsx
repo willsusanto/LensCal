@@ -149,8 +149,18 @@ export default function SettingsScreen() {
           disabled={isBusy}
           onChange={(value) => updateSetting('defaultLensType', value)}
         />
+        <Stepper
+          label="Monthly Days"
+          value={String(settings.monthlyReplacementDays)}
+          onDecrease={() =>
+            updateSetting('monthlyReplacementDays', Math.max(1, settings.monthlyReplacementDays - 1))
+          }
+          onIncrease={() =>
+            updateSetting('monthlyReplacementDays', Math.min(365, settings.monthlyReplacementDays + 1))
+          }
+        />
         <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
-          New lenses default to {displayLensType(settings.defaultLensType)}.
+          New {displayLensType(settings.defaultLensType)} lenses use this default.
         </Text>
       </View>
 

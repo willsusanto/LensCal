@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
-import { daysRemaining, daysUsed, displayLensType, expectedDaysFor, formatShortDate } from '@/lib/date-utils';
+import { daysRemaining, daysUsed, displayLensType, formatShortDate, lensDurationDays } from '@/lib/date-utils';
 import type { Eye, EyeState } from '@/types/lens';
 
 type LensCardProps = {
@@ -67,7 +67,7 @@ export function LensCard({
 }: LensCardProps) {
   const router = useRouter();
   const lens = state.activeLens;
-  const duration = lens ? expectedDaysFor(lens.lens_type) : expectedDaysFor('monthly');
+  const duration = lens ? lensDurationDays(lens.opened_at, lens.expires_at) : 28;
   const used = lens ? daysUsed(lens.opened_at) : 0;
   const remaining = lens ? daysRemaining(lens.expires_at) : 0;
   const progress = lens ? Math.min(1, used / duration) : 0;

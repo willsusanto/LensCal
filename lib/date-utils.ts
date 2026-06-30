@@ -3,7 +3,7 @@ import type { LensType } from '@/types/lens';
 export const lensTypeDays: Record<LensType, number> = {
   daily: 1,
   weekly: 7,
-  monthly: 30,
+  monthly: 28,
 };
 
 export function nowIso() {
@@ -20,8 +20,12 @@ export function addDays(date: Date, days: number) {
   return next;
 }
 
-export function expirationFor(openedAt: Date, lensType: LensType) {
-  return addDays(startOfLocalDay(openedAt), lensTypeDays[lensType]).toISOString();
+export function replacementDaysFor(lensType: LensType, monthlyReplacementDays = lensTypeDays.monthly) {
+  return lensType === 'monthly' ? monthlyReplacementDays : lensTypeDays[lensType];
+}
+
+export function expirationFor(openedAt: Date, lensType: LensType, monthlyReplacementDays = lensTypeDays.monthly) {
+  return addDays(startOfLocalDay(openedAt), replacementDaysFor(lensType, monthlyReplacementDays)).toISOString();
 }
 
 export function daysUsed(openedAt: string, at = new Date()) {
@@ -68,4 +72,10 @@ export function displayLensType(lensType: LensType) {
 
 export function expectedDaysFor(lensType: LensType) {
   return lensTypeDays[lensType];
+}
+
+export function lensDurationDays(openedAt: string, expiresAt: string) {
+  const opened = startOfLocalDay(new Date(openedAt));
+  const expires = startOfLocalDay(new Date(expiresAt));
+  return Math.max(1, Math.round((expires.getTime() - opened.getTime()) / 86_400_000));
 }

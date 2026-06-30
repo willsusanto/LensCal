@@ -6,7 +6,7 @@ import { ActionButton } from '@/components/action-button';
 import { SegmentedControl } from '@/components/segmented-control';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
-import { displayLensType, expirationFor, formatShortDate } from '@/lib/date-utils';
+import { displayLensType, expirationFor, formatShortDate, replacementDaysFor } from '@/lib/date-utils';
 import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
 import type { Eye, LensType } from '@/types/lens';
@@ -45,7 +45,8 @@ export default function ReplaceLensScreen() {
   const activeLens = eyes[eye].activeLens;
   const otherEye: Eye = eye === 'left' ? 'right' : 'left';
   const otherLens = eyes[otherEye].activeLens;
-  const expiresAt = expirationFor(new Date(), lensType);
+  const expiresAt = expirationFor(new Date(), lensType, settings.monthlyReplacementDays);
+  const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
   const accent = accentForEye(eye);
 
   async function save() {
@@ -117,7 +118,7 @@ export default function ReplaceLensScreen() {
             {formatShortDate(expiresAt)}
           </Text>
           <Text selectable style={{ color: '#C7D3E0', fontSize: 13, fontWeight: '700' }}>
-            {displayLensType(lensType)} lens opened today
+            {displayLensType(lensType)} lens · {replacementDays} days
           </Text>
         </View>
 

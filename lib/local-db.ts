@@ -67,6 +67,7 @@ export async function initDatabase() {
   `);
 
   await ensureSetting('default_lens_type', 'monthly');
+  await ensureSetting('monthly_replacement_days', '28');
   await ensureSetting('notifications_enabled', 'true');
   await ensureSetting('reminder_hour', '8');
   await ensureSetting('reminder_minute', '0');
@@ -84,6 +85,7 @@ export async function getSettings(): Promise<AppSettings> {
 
   return {
     defaultLensType: (settings.default_lens_type as LensType | undefined) ?? 'monthly',
+    monthlyReplacementDays: Number(settings.monthly_replacement_days ?? 28),
     notificationsEnabled: settings.notifications_enabled !== 'false',
     reminderHour: Number(settings.reminder_hour ?? 8),
     reminderMinute: Number(settings.reminder_minute ?? 0),
@@ -94,6 +96,7 @@ export async function updateSetting(key: keyof AppSettings, value: string | numb
   const db = await getDatabase();
   const keyMap: Record<keyof AppSettings, string> = {
     defaultLensType: 'default_lens_type',
+    monthlyReplacementDays: 'monthly_replacement_days',
     notificationsEnabled: 'notifications_enabled',
     reminderHour: 'reminder_hour',
     reminderMinute: 'reminder_minute',
@@ -173,6 +176,7 @@ export async function openLens(input: {
   notes?: string | null;
   notificationId?: string | null;
   userId?: string | null;
+  monthlyReplacementDays?: number;
 }) {
   const db = await getDatabase();
   const openedAt = input.openedAt ?? new Date();
@@ -182,7 +186,7 @@ export async function openLens(input: {
     user_id: input.userId ?? null,
     eye: input.eye,
     opened_at: openedAt.toISOString(),
-    expires_at: expirationFor(openedAt, input.lensType),
+    expires_at: expirationFor(openedAt, input.lensType, input.monthlyReplacementDays),
     lens_type: input.lensType,
     status: 'active',
     notes: input.notes ?? null,
