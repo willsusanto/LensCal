@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { LensCard } from '@/components/lens-card';
@@ -8,6 +9,7 @@ import { useLens } from '@/providers/lens-provider';
 import type { Eye } from '@/types/lens';
 
 export default function TodayScreen() {
+  const router = useRouter();
   const { eyes, isBusy, isReady, markUncomfortable, discardLens, settings, syncMessage } = useLens();
   const { width } = useWindowDimensions();
   const compact = width < 390;
@@ -21,6 +23,15 @@ export default function TodayScreen() {
   async function handleMarkUncomfortable(eye: Eye) {
     await lightTap();
     await markUncomfortable(eye);
+    const label = eye === 'left' ? 'Left' : 'Right';
+
+    Alert.alert(`${label} marked uncomfortable`, '', [
+      { text: 'Done', style: 'cancel' },
+      {
+        text: 'Replace now',
+        onPress: () => router.push(`/replace-lens?eye=${eye}` as never),
+      },
+    ]);
   }
 
   async function handleDiscard(eye: Eye) {
