@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LensCard } from '@/components/lens-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -13,6 +15,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const { eyes, isBusy, isReady, markUncomfortable, discardLens, settings, syncMessage } = useLens();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const compact = width < 390;
   const panelGap = compact ? 8 : 10;
   const activeLenses = [eyes.left.activeLens, eyes.right.activeLens].filter(Boolean);
@@ -55,8 +58,10 @@ export default function TodayScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 118, gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 112, gap: 16 }}>
+      <Animated.View
+        entering={FadeInDown.duration(240).springify().damping(18)}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
           <View
             style={{
@@ -94,9 +99,10 @@ export default function TodayScreen() {
             <IconSymbol name="bell.fill" color={palette.black} size={22} />
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(260).delay(60).springify().damping(18)}
         style={{
           gap: 14,
           borderRadius: 8,
@@ -161,14 +167,15 @@ export default function TodayScreen() {
               : 'Open left or right lens to start tracking.'}
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
       {!isReady ? (
         <Text selectable style={{ color: palette.muted, fontSize: 16 }}>
           Loading lenses...
         </Text>
       ) : (
-        <View
+        <Animated.View
+          entering={FadeInUp.duration(260).delay(120).springify().damping(18)}
           style={{
             width: '100%',
             maxWidth: 520,
@@ -191,7 +198,7 @@ export default function TodayScreen() {
             onDiscard={handleDiscard}
             onMarkUncomfortable={handleMarkUncomfortable}
           />
-        </View>
+        </Animated.View>
       )}
 
       {syncMessage ? (

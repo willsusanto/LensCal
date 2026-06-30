@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import Animated, { FadeInUp, LinearTransition } from 'react-native-reanimated';
 
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 import { daysRemaining, daysUsed, displayLensType, formatShortDate, lensDurationDays } from '@/lib/date-utils';
@@ -75,7 +77,9 @@ export function LensCard({
   const accent = accentForEye(state.eye);
 
   return (
-    <View
+    <Animated.View
+      entering={FadeInUp.duration(260).springify().damping(18).stiffness(160)}
+      layout={LinearTransition.springify().damping(18).stiffness(220)}
       style={{
         minWidth: 0,
         flex: 1,
@@ -261,11 +265,11 @@ export function LensCard({
       ) : null}
 
       <View style={{ gap: 8 }}>
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           disabled={disabled}
           onPress={() => router.push(`/replace-lens?eye=${state.eye}` as never)}
-          style={({ pressed }) => ({
+          style={{
             minHeight: 44,
             flexDirection: 'row',
             alignItems: 'center',
@@ -273,24 +277,25 @@ export function LensCard({
             gap: compact ? 6 : 8,
             borderRadius: 999,
             backgroundColor: lens ? palette.black : palette.blueDeep,
-            opacity: disabled ? 0.45 : pressed ? 0.72 : 1,
+            opacity: disabled ? 0.45 : 1,
             paddingHorizontal: 10,
             paddingVertical: 10,
-          })}>
+          }}>
           <IconSymbol name="arrow.triangle.2.circlepath" color={palette.white} size={compact ? 17 : 18} />
           <Text selectable style={{ color: palette.white, fontSize: compact ? 12 : 13, fontWeight: '900' }}>
             {lens ? 'Replace' : 'Open pack'}
           </Text>
-        </Pressable>
+        </AnimatedPressable>
 
         {lens ? (
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable
+            <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel={`Mark ${state.eye} lens uncomfortable`}
               disabled={disabled || !lens}
               onPress={() => onMarkUncomfortable(state.eye)}
-              style={({ pressed }) => ({
+              pressedScale={0.94}
+              style={{
                 minHeight: 42,
                 flex: 1,
                 alignItems: 'center',
@@ -299,17 +304,18 @@ export function LensCard({
                 borderWidth: 1,
                 borderColor: '#F1D596',
                 backgroundColor: palette.warningBg,
-                opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
-              })}>
+                opacity: disabled || !lens ? 0.4 : 1,
+              }}>
               <IconSymbol name="exclamationmark.triangle.fill" color={palette.warning} size={20} />
-            </Pressable>
+            </AnimatedPressable>
 
-            <Pressable
+            <AnimatedPressable
               accessibilityRole="button"
               accessibilityLabel={`Discard ${state.eye} lens`}
               disabled={disabled || !lens}
               onPress={() => onDiscard(state.eye)}
-              style={({ pressed }) => ({
+              pressedScale={0.94}
+              style={{
                 minHeight: 42,
                 flex: 1,
                 alignItems: 'center',
@@ -318,13 +324,13 @@ export function LensCard({
                 borderWidth: 1,
                 borderColor: '#F0B7C0',
                 backgroundColor: palette.dangerBg,
-                opacity: disabled || !lens ? 0.4 : pressed ? 0.72 : 1,
-              })}>
+                opacity: disabled || !lens ? 0.4 : 1,
+              }}>
               <IconSymbol name="trash.fill" color={palette.danger} size={20} />
-            </Pressable>
+            </AnimatedPressable>
           </View>
         ) : null}
       </View>
-    </View>
+    </Animated.View>
   );
 }

@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionButton } from '@/components/action-button';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -48,6 +50,7 @@ export default function ReplaceLensScreen() {
   const expiresAt = expirationFor(new Date(), lensType, settings.monthlyReplacementDays);
   const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
   const accent = accentForEye(eye);
+  const insets = useSafeAreaInsets();
 
   async function save() {
     await lightTap();
@@ -59,8 +62,10 @@ export default function ReplaceLensScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32, gap: 16 }}>
+      <Animated.View
+        entering={FadeInUp.duration(220).springify().damping(18)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View
           style={{
             width: 58,
@@ -81,9 +86,10 @@ export default function ReplaceLensScreen() {
             Starts today. Reminder: {formatShortDate(expiresAt)}
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(50).springify().damping(18)}
         style={{
           borderRadius: 8,
           borderCurve: 'continuous',
@@ -101,9 +107,10 @@ export default function ReplaceLensScreen() {
         <Text selectable style={{ color: '#C7D3E0', fontSize: 13, fontWeight: '700' }}>
           {displayLensType(lensType)} lens · {replacementDays} days
         </Text>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(90).springify().damping(18)}
         style={{
           borderRadius: 8,
           borderCurve: 'continuous',
@@ -157,16 +164,16 @@ export default function ReplaceLensScreen() {
             {otherLens ? formatShortDate(otherLens.expires_at) : 'Not set'}
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={{ gap: 8 }}>
+      <Animated.View entering={FadeInUp.duration(240).delay(130).springify().damping(18)} style={{ gap: 8 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
           Lens Type
         </Text>
         <SegmentedControl options={lensOptions} value={lensType} disabled={isBusy} onChange={setLensType} />
-      </View>
+      </Animated.View>
 
-      <View style={{ gap: 8 }}>
+      <Animated.View entering={FadeInUp.duration(240).delay(170).springify().damping(18)} style={{ gap: 8 }}>
         <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
           Notes
         </Text>
@@ -188,12 +195,14 @@ export default function ReplaceLensScreen() {
             color: palette.ink,
           }}
         />
-      </View>
+      </Animated.View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(210).springify().damping(18)}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <ActionButton label={activeLens ? 'Replace Lens' : 'Open Lens'} tone="primary" disabled={isBusy} onPress={save} />
         <ActionButton label="Cancel" disabled={isBusy} onPress={() => router.back()} />
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }

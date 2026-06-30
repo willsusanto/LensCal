@@ -1,5 +1,6 @@
-import { Pressable, Text } from 'react-native';
+import { Text } from 'react-native';
 
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { palette } from '@/constants/palette';
 
 type ActionButtonProps = {
@@ -41,11 +42,11 @@ export function ActionButton({
   const style = toneStyles[tone];
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({
+      style={{
         minHeight: 44,
         flexGrow: 1,
         flexBasis: 96,
@@ -56,10 +57,10 @@ export function ActionButton({
         borderColor: style.borderColor,
         backgroundColor: style.backgroundColor,
         boxShadow: tone === 'primary' ? `0 12px 24px ${palette.softShadow}` : 'none',
-        opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+        opacity: disabled ? 0.45 : 1,
         paddingHorizontal: 12,
         paddingVertical: 10,
-      })}>
+      }}>
       <Text
         selectable
         style={{
@@ -70,6 +71,6 @@ export function ActionButton({
         }}>
         {label}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }

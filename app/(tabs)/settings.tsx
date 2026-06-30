@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionButton } from '@/components/action-button';
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { SegmentedControl } from '@/components/segmented-control';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
@@ -53,9 +56,10 @@ function Stepper({
         {label}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           onPress={onDecrease}
+          pressedScale={0.9}
           style={{
             width: 40,
             height: 40,
@@ -68,7 +72,7 @@ function Stepper({
             backgroundColor: palette.surface,
           }}>
           <Text style={{ color: palette.ink, fontSize: 24, fontWeight: '800' }}>-</Text>
-        </Pressable>
+        </AnimatedPressable>
         <Text
           selectable
           style={{
@@ -81,9 +85,10 @@ function Stepper({
           }}>
           {value}
         </Text>
-        <Pressable
+        <AnimatedPressable
           accessibilityRole="button"
           onPress={onIncrease}
+          pressedScale={0.9}
           style={{
             width: 40,
             height: 40,
@@ -96,7 +101,7 @@ function Stepper({
             backgroundColor: palette.surface,
           }}>
           <Text style={{ color: palette.ink, fontSize: 24, fontWeight: '800' }}>+</Text>
-        </Pressable>
+        </AnimatedPressable>
       </View>
     </View>
   );
@@ -117,22 +122,24 @@ export default function SettingsScreen() {
   } = useLens();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 148, gap: 14 }}>
-      <View style={{ gap: 4 }}>
+      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 136, gap: 14 }}>
+      <Animated.View entering={FadeInUp.duration(220).springify().damping(18)} style={{ gap: 4 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           Settings
         </Text>
         <Text selectable style={{ color: palette.muted, fontSize: 15 }}>
           Defaults, reminders, and device sync.
         </Text>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(50).springify().damping(18)}
         style={{
           gap: 12,
           borderRadius: 8,
@@ -162,9 +169,10 @@ export default function SettingsScreen() {
         <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
           New {displayLensType(settings.defaultLensType)} lenses use this default.
         </Text>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(90).springify().damping(18)}
         style={{
           gap: 12,
           borderRadius: 8,
@@ -210,9 +218,10 @@ export default function SettingsScreen() {
             }
           />
         </View>
-      </View>
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInUp.duration(240).delay(130).springify().damping(18)}
         style={{
           gap: 12,
           borderRadius: 8,
@@ -296,7 +305,7 @@ export default function SettingsScreen() {
             {syncMessage}
           </Text>
         ) : null}
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }

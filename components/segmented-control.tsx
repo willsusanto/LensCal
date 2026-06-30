@@ -1,5 +1,6 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { palette } from '@/constants/palette';
 
 type SegmentedControlProps<T extends string> = {
@@ -31,11 +32,12 @@ export function SegmentedControl<T extends string>({
         const selected = option.value === value;
 
         return (
-          <Pressable
+          <AnimatedPressable
             key={option.value}
             disabled={disabled}
             onPress={() => onChange(option.value)}
-            style={({ pressed }) => ({
+            pressedScale={0.97}
+            style={{
               minHeight: 38,
               flex: 1,
               alignItems: 'center',
@@ -43,9 +45,9 @@ export function SegmentedControl<T extends string>({
               borderRadius: 999,
               backgroundColor: selected ? palette.surface : 'transparent',
               boxShadow: selected ? `0 8px 18px ${palette.softShadow}` : 'none',
-              opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
+              opacity: disabled ? 0.45 : 1,
               paddingHorizontal: 8,
-            })}>
+            }}>
             <Text
               selectable
               style={{
@@ -56,7 +58,7 @@ export function SegmentedControl<T extends string>({
               }}>
               {option.label}
             </Text>
-          </Pressable>
+          </AnimatedPressable>
         );
       })}
     </View>

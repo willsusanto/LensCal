@@ -1,4 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInUp, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
@@ -24,7 +26,9 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
   const isLeft = usage.eye === 'left';
 
   return (
-    <View
+    <Animated.View
+      entering={FadeInUp.duration(240).springify().damping(18)}
+      layout={LinearTransition.springify().damping(18).stiffness(220)}
       style={{
         gap: 10,
         borderRadius: 8,
@@ -95,33 +99,35 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
           </Text>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 export default function HistoryScreen() {
   const { history, events, isReady } = useLens();
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 112, gap: 16 }}>
-      <View style={{ gap: 4 }}>
+      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 112, gap: 16 }}>
+      <Animated.View entering={FadeInUp.duration(220).springify().damping(18)} style={{ gap: 4 }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           History
         </Text>
         <Text selectable style={{ color: palette.muted, fontSize: 15 }}>
           Past lenses and discomfort events.
         </Text>
-      </View>
+      </Animated.View>
 
       {!isReady ? (
         <Text selectable style={{ color: palette.muted, fontSize: 16 }}>
           Loading history...
         </Text>
       ) : history.length === 0 ? (
-        <View
+        <Animated.View
+          entering={FadeInUp.duration(260).delay(70).springify().damping(18)}
           style={{
             alignItems: 'center',
             gap: 12,
@@ -151,7 +157,7 @@ export default function HistoryScreen() {
               Open or replace a lens and each eye will build its own timeline here.
             </Text>
           </View>
-        </View>
+        </Animated.View>
       ) : (
         history.map((usage) => <UsageRow key={usage.id} usage={usage} events={events} />)
       )}
