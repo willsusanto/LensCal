@@ -25,6 +25,7 @@ const MAPPING = {
   'arrow.triangle.2.circlepath': 'autorenew',
   'exclamationmark.triangle.fill': 'warning',
   'trash.fill': 'delete',
+  'bell.fill': 'notifications',
 } as IconMapping;
 
 /**

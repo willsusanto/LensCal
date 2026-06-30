@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-nati
 
 import { ActionButton } from '@/components/action-button';
 import { SegmentedControl } from '@/components/segmented-control';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 import { displayLensType, formatReminderTime } from '@/lib/date-utils';
 import { useLens } from '@/providers/lens-provider';
@@ -13,6 +14,27 @@ const lensOptions: { label: string; value: LensType }[] = [
   { label: 'Weekly', value: 'weekly' },
   { label: 'Monthly', value: 'monthly' },
 ];
+
+function SectionTitle({ icon, title }: { icon: 'calendar' | 'bell.fill' | 'arrow.triangle.2.circlepath'; title: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: palette.surfaceBlue,
+        }}>
+        <IconSymbol name={icon} color={palette.black} size={22} />
+      </View>
+      <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '900' }}>
+        {title}
+      </Text>
+    </View>
+  );
+}
 
 function Stepper({
   label,
@@ -120,9 +142,7 @@ export default function SettingsScreen() {
           backgroundColor: palette.surface,
           padding: 16,
         }}>
-        <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
-          Lens Defaults
-        </Text>
+        <SectionTitle icon="calendar" title="Lens Defaults" />
         <SegmentedControl
           options={lensOptions}
           value={settings.defaultLensType}
@@ -146,9 +166,7 @@ export default function SettingsScreen() {
         }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flexShrink: 1, gap: 4 }}>
-            <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
-              Local Reminders
-            </Text>
+            <SectionTitle icon="bell.fill" title="Local Reminders" />
             <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
               Scheduled on each device at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}.
             </Text>
@@ -194,9 +212,7 @@ export default function SettingsScreen() {
           backgroundColor: palette.surface,
           padding: 16,
         }}>
-        <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
-          Supabase Sync
-        </Text>
+        <SectionTitle icon="arrow.triangle.2.circlepath" title="Supabase Sync" />
 
         {!isSupabaseConfigured ? (
           <Text selectable style={{ color: palette.warning, fontSize: 14, fontWeight: '700' }}>
