@@ -19,13 +19,13 @@ export function SegmentedControl<T extends string>({
     <View
       style={{
         flexDirection: 'row',
-        borderRadius: 8,
-        borderCurve: 'continuous',
+        borderRadius: 999,
         borderWidth: 1,
-        borderColor: palette.line,
+        borderColor: palette.white,
         backgroundColor: palette.faint,
-        padding: 3,
-        gap: 3,
+        padding: 4,
+        gap: 4,
+        boxShadow: `0 8px 20px ${palette.softShadow}`,
       }}>
       {options.map((option) => {
         const selected = option.value === value;
@@ -40,9 +40,9 @@ export function SegmentedControl<T extends string>({
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 6,
-              borderCurve: 'continuous',
+              borderRadius: 999,
               backgroundColor: selected ? palette.surface : 'transparent',
+              boxShadow: selected ? `0 8px 18px ${palette.softShadow}` : 'none',
               opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
               paddingHorizontal: 8,
             })}>

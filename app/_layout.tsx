@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 
+import { palette } from '@/constants/palette';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { LensProvider } from '@/providers/lens-provider';
 
@@ -18,7 +19,16 @@ export default function RootLayout() {
       <LensProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="replace-lens" options={{ presentation: 'modal', title: 'Replace Lens' }} />
+          <Stack.Screen
+            name="replace-lens"
+            options={{
+              presentation: 'modal',
+              title: 'Replace Lens',
+              headerShadowVisible: false,
+              headerStyle: { backgroundColor: palette.background },
+              headerTitleStyle: { color: palette.ink, fontWeight: '900' },
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </LensProvider>

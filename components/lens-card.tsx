@@ -81,14 +81,14 @@ export function LensCard({
         flex: 1,
         flexBasis: '48%',
         flexShrink: 1,
-        gap: compact ? 10 : 14,
+        gap: compact ? 11 : 15,
         borderRadius: 8,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: accent.border,
+        borderColor: palette.white,
         backgroundColor: palette.surface,
-        padding: compact ? 10 : 12,
-        boxShadow: `0 12px 28px ${palette.shadow}`,
+        padding: compact ? 11 : 13,
+        boxShadow: `0 18px 38px ${palette.softShadow}`,
       }}>
       <View style={{ alignItems: 'center', gap: compact ? 6 : 8 }}>
         <View
@@ -105,14 +105,14 @@ export function LensCard({
           <View
             style={{
               borderRadius: 999,
-              backgroundColor: lens ? palette.surfaceBlue : palette.faint,
+              backgroundColor: lens ? palette.blueDeep : palette.faint,
               paddingHorizontal: 8,
               paddingVertical: 4,
             }}>
             <Text
               selectable
               style={{
-                color: lens ? palette.blueDeep : palette.muted,
+                color: lens ? palette.white : palette.muted,
                 fontSize: 10,
                 fontWeight: '900',
               }}>
@@ -128,7 +128,8 @@ export function LensCard({
             borderRadius: compact ? 26 : 31,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: accent.soft,
+            backgroundColor: palette.blueGlow,
+            boxShadow: `0 10px 24px ${palette.softShadow}`,
           }}>
           <IconSymbol name="eye.fill" color={accent.strong} size={compact ? 30 : 34} />
         </View>
@@ -211,7 +212,7 @@ export function LensCard({
             justifyContent: 'center',
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: palette.faint,
+            backgroundColor: palette.surfaceSoft,
             padding: 10,
             gap: 5,
           }}>
@@ -270,9 +271,8 @@ export function LensCard({
             alignItems: 'center',
             justifyContent: 'center',
             gap: compact ? 6 : 8,
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            backgroundColor: palette.black,
+            borderRadius: 999,
+            backgroundColor: lens ? palette.black : palette.blueDeep,
             opacity: disabled ? 0.45 : pressed ? 0.72 : 1,
             paddingHorizontal: 10,
             paddingVertical: 10,
@@ -295,8 +295,7 @@ export function LensCard({
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 8,
-                borderCurve: 'continuous',
+                borderRadius: 999,
                 borderWidth: 1,
                 borderColor: '#F1D596',
                 backgroundColor: palette.warningBg,
@@ -315,8 +314,7 @@ export function LensCard({
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 8,
-                borderCurve: 'continuous',
+                borderRadius: 999,
                 borderWidth: 1,
                 borderColor: '#F0B7C0',
                 backgroundColor: palette.dangerBg,

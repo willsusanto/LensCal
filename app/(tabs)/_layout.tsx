@@ -1,18 +1,18 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
+import { FloatingTabBar } from '@/components/floating-tab-bar';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: palette.ink,
         tabBarInactiveTintColor: palette.muted,
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
