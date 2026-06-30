@@ -1,7 +1,4 @@
-import { View } from 'react-native';
-
-import { AnimatedPressable } from '@/components/animated-pressable';
-import { Text } from '@/components/app-text';
+﻿import { AnimatedPressable } from '@/components/animated-pressable';
 import { palette } from '@/constants/palette';
 
 type SegmentedControlProps<T extends string> = {
@@ -18,49 +15,31 @@ export function SegmentedControl<T extends string>({
   disabled = false,
 }: SegmentedControlProps<T>) {
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: palette.line,
-        backgroundColor: palette.surfaceSoft,
-        padding: 4,
-        gap: 4,
-      }}>
+    <div
+      className="flex rounded-full border p-1 gap-1"
+      style={{ borderColor: palette.line, backgroundColor: palette.surfaceSoft }}
+    >
       {options.map((option) => {
         const selected = option.value === value;
-
         return (
           <AnimatedPressable
             key={option.value}
             disabled={disabled}
-            onPress={() => onChange(option.value)}
             pressedScale={0.97}
+            onClick={() => onChange(option.value)}
+            className="flex-1 min-h-[38px] flex items-center justify-center rounded-full text-sm px-2 font-extrabold"
             style={{
-              minHeight: 38,
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 999,
               backgroundColor: selected ? palette.white : 'transparent',
-              boxShadow: selected ? `0 8px 18px ${palette.softShadow}` : 'none',
-              opacity: disabled ? 0.45 : 1,
-              paddingHorizontal: 8,
-            }}>
-            <Text
-              selectable
-              style={{
-                color: selected ? palette.ink : palette.muted,
-                fontSize: 14,
-                fontWeight: selected ? '800' : '700',
-                textAlign: 'center',
-              }}>
-              {option.label}
-            </Text>
+              color: selected ? palette.ink : palette.muted,
+              fontWeight: selected ? '800' : '700',
+              boxShadow: selected ? `0 8px 18px ` : undefined,
+              opacity: disabled ? 0.45 : undefined,
+            }}
+          >
+            {option.label}
           </AnimatedPressable>
         );
       })}
-    </View>
+    </div>
   );
 }

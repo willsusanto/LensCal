@@ -1,47 +1,32 @@
-import type { ReactNode } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import type { CSSProperties, ReactNode } from 'react';
 
-import { Text } from '@/components/app-text';
 import { palette } from '@/constants/palette';
 
 export function Card({
   children,
   tone = 'default',
   style,
+  className = '',
 }: {
   children: ReactNode;
   tone?: 'default' | 'soft' | 'dark';
-  style?: ViewStyle;
+  style?: CSSProperties;
+  className?: string;
 }) {
-  const toneStyle =
+  const toneStyle: CSSProperties =
     tone === 'dark'
-      ? {
-          backgroundColor: palette.black,
-          borderColor: palette.black,
-        }
+      ? { backgroundColor: palette.black, borderColor: palette.black }
       : tone === 'soft'
-        ? {
-            backgroundColor: palette.surfaceBlue,
-            borderColor: palette.line,
-          }
-        : {
-            backgroundColor: palette.surface,
-            borderColor: palette.line,
-          };
+        ? { backgroundColor: palette.surfaceBlue, borderColor: palette.line }
+        : { backgroundColor: palette.surface, borderColor: palette.line };
 
   return (
-    <View
-      style={{
-        borderRadius: 8,
-        borderCurve: 'continuous',
-        borderWidth: 1,
-        padding: 16,
-        boxShadow: `0 14px 34px ${palette.softShadow}`,
-        ...toneStyle,
-        ...style,
-      }}>
+    <div
+      className={`rounded-lg border p-4 ${className}`}
+      style={{ boxShadow: `0 14px 34px ${palette.softShadow}`, ...toneStyle, ...style }}
+    >
       {children}
-    </View>
+    </div>
   );
 }
 
@@ -53,40 +38,19 @@ export function Badge({
   tone?: 'primary' | 'secondary' | 'dark' | 'danger' | 'warning';
 }) {
   const toneStyle = {
-    primary: {
-      backgroundColor: palette.blueDeep,
-      color: palette.white,
-    },
-    secondary: {
-      backgroundColor: palette.surfaceBlue,
-      color: palette.blueDeep,
-    },
-    dark: {
-      backgroundColor: palette.black,
-      color: palette.white,
-    },
-    danger: {
-      backgroundColor: palette.dangerBg,
-      color: palette.danger,
-    },
-    warning: {
-      backgroundColor: palette.warningBg,
-      color: palette.warning,
-    },
+    primary: { backgroundColor: palette.blueDeep, color: palette.white },
+    secondary: { backgroundColor: palette.surfaceBlue, color: palette.blueDeep },
+    dark: { backgroundColor: palette.black, color: palette.white },
+    danger: { backgroundColor: palette.dangerBg, color: palette.danger },
+    warning: { backgroundColor: palette.warningBg, color: palette.warning },
   }[tone];
 
   return (
-    <View
-      style={{
-        alignSelf: 'flex-start',
-        borderRadius: 999,
-        backgroundColor: toneStyle.backgroundColor,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-      }}>
-      <Text selectable style={{ color: toneStyle.color, fontSize: 11, fontWeight: '900' }}>
-        {children}
-      </Text>
-    </View>
+    <span
+      className="inline-block rounded-full px-2.5 py-1 text-[11px] font-black uppercase"
+      style={toneStyle}
+    >
+      {children}
+    </span>
   );
 }

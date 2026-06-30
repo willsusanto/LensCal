@@ -1,47 +1,55 @@
-import type { ComponentProps, ReactNode } from 'react';
-import { Pressable } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 
-const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
-
-type PressableProps = ComponentProps<typeof Pressable>;
-
-type AnimatedPressableProps = PressableProps & {
+type AnimatedPressableProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
+  /** pressedScale is applied via mousedown/touchstart JS events so any value works. */
   pressedScale?: number;
 };
 
 export function AnimatedPressable({
   children,
-  onPressIn,
-  onPressOut,
-  pressedScale = 0.985,
+  className = '',
   style,
+  pressedScale = 0.985,
+  onMouseDown,
+  onMouseUp,
+  onMouseLeave,
+  onTouchStart,
+  onTouchEnd,
   ...props
 }: AnimatedPressableProps) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
-
   return (
-    <AnimatedPressableBase
+    <button
       {...props}
-      onPressIn={(event) => {
-        scale.value = withTiming(pressedScale, { duration: 90 });
-        opacity.value = withTiming(0.94, { duration: 90 });
-        onPressIn?.(event);
+      className={`transition-[transform,opacity] duration-100 ${className}`}
+      style={style as CSSProperties}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = `scale(${pressedScale})`;
+        e.currentTarget.style.opacity = '0.94';
+        onMouseDown?.(e);
       }}
-      onPressOut={(event) => {
-        scale.value = withTiming(1, { duration: 110 });
-        opacity.value = withTiming(1, { duration: 110 });
-        onPressOut?.(event);
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.opacity = '1';
+        onMouseUp?.(e);
       }}
-      style={[style, animatedStyle]}>
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.opacity = '1';
+        onMouseLeave?.(e);
+      }}
+      onTouchStart={(e) => {
+        e.currentTarget.style.transform = `scale(${pressedScale})`;
+        e.currentTarget.style.opacity = '0.94';
+        onTouchStart?.(e);
+      }}
+      onTouchEnd={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.opacity = '1';
+        onTouchEnd?.(e);
+      }}
+    >
       {children}
-    </AnimatedPressableBase>
+    </button>
   );
 }
