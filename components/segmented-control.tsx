@@ -1,6 +1,7 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text } from '@/components/app-text';
 import { palette } from '@/constants/palette';
 
 type SegmentedControlProps<T extends string> = {
@@ -22,11 +23,10 @@ export function SegmentedControl<T extends string>({
         flexDirection: 'row',
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: palette.white,
-        backgroundColor: 'rgba(255, 255, 255, 0.54)',
+        borderColor: palette.line,
+        backgroundColor: palette.surfaceSoft,
         padding: 4,
         gap: 4,
-        boxShadow: `0 8px 20px ${palette.softShadow}`,
       }}>
       {options.map((option) => {
         const selected = option.value === value;
@@ -43,7 +43,7 @@ export function SegmentedControl<T extends string>({
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 999,
-              backgroundColor: selected ? palette.surface : 'transparent',
+              backgroundColor: selected ? palette.white : 'transparent',
               boxShadow: selected ? `0 8px 18px ${palette.softShadow}` : 'none',
               opacity: disabled ? 0.45 : 1,
               paddingHorizontal: 8,

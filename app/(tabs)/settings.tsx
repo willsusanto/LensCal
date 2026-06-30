@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionButton } from '@/components/action-button';
 import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text, TextInput } from '@/components/app-text';
 import { SegmentedControl } from '@/components/segmented-control';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
@@ -125,10 +126,20 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
+      stickyHeaderIndices={[0]}
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 136, gap: 14 }}>
-      <View style={{ gap: 4 }}>
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: insets.bottom + 136, gap: 14 }}>
+      <View
+        style={{
+          gap: 4,
+          backgroundColor: palette.background,
+          marginHorizontal: -16,
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 16,
+          paddingBottom: 12,
+          zIndex: 10,
+        }}>
         <Text selectable style={{ color: palette.ink, fontSize: 34, fontWeight: '900' }}>
           Settings
         </Text>

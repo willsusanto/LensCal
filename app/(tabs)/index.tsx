@@ -1,31 +1,26 @@
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text } from '@/components/app-text';
 import { LensCard } from '@/components/lens-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Badge, Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
 import { formatReminderTime, formatShortDate } from '@/lib/date-utils';
-import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
 
 export default function TodayScreen() {
   const {
-    advanceTestDay,
     currentDate,
     eyes,
     isBusy,
     isReady,
-    resetTestDate,
     settings,
     syncMessage,
-    testDateOffsetDays,
   } = useLens();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width < 390;
-  const panelGap = compact ? 8 : 10;
   const activeLenses = [eyes.left.activeLens, eyes.right.activeLens].filter(Boolean);
   const nearestLens = activeLenses
     .slice()
@@ -33,54 +28,48 @@ export default function TodayScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
+      stickyHeaderIndices={[0]}
       style={{ flex: 1, backgroundColor: palette.background }}
-      contentContainerStyle={{ padding: 16, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 112, gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: insets.bottom + 112, gap: 16 }}>
+      <View
+        style={{
+          minHeight: insets.top + 68,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: palette.background,
+          marginHorizontal: -16,
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 16,
+          paddingBottom: 12,
+          zIndex: 10,
+        }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
           <View
             style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: palette.surface,
-              boxShadow: `0 10px 24px ${palette.softShadow}`,
+              backgroundColor: palette.black,
             }}>
-            <IconSymbol name="eye.fill" color={palette.black} size={25} />
+            <IconSymbol name="eye.fill" color={palette.white} size={22} />
           </View>
-          <View style={{ gap: 2, flexShrink: 1 }}>
-            <Text selectable style={{ color: palette.ink, fontSize: compact ? 22 : 24, fontWeight: '900' }}>
-              LensCal
-            </Text>
-            <Text selectable style={{ color: palette.muted, fontSize: compact ? 12 : 13, fontWeight: '700' }}>
-              Softlens care, made calmer
-            </Text>
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: palette.surface,
-              boxShadow: `0 10px 24px ${palette.softShadow}`,
-            }}>
-            <IconSymbol name="bell.fill" color={palette.black} size={22} />
-          </View>
+          <Text selectable style={{ color: palette.ink, fontSize: compact ? 20 : 22, fontWeight: '900' }}>
+            LensCal
+          </Text>
         </View>
       </View>
 
       <Card
         tone="soft"
         style={{
-          gap: 13,
-          padding: 14,
+          width: '100%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          gap: 14,
+          padding: 16,
         }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <Badge tone="secondary">TODAY</Badge>
@@ -89,134 +78,50 @@ export default function TodayScreen() {
           </Text>
         </View>
 
-        <View
-          style={{
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            borderWidth: 1,
-            borderColor: palette.lineStrong,
-            backgroundColor: 'rgba(255, 255, 255, 0.72)',
-            flexDirection: compact ? 'column' : 'row',
-            alignItems: compact ? 'stretch' : 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            padding: 10,
-          }}>
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
-              TEST DATE
-            </Text>
-            <Text selectable numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.ink, fontSize: 16, fontWeight: '900' }}>
-              {formatShortDate(currentDate)}
-              {testDateOffsetDays > 0 ? ` · +${testDateOffsetDays}d` : ''}
-            </Text>
-          </View>
+        {/* Test date controls are intentionally hidden outside manual QA. */}
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {testDateOffsetDays > 0 ? (
-              <AnimatedPressable
-                accessibilityRole="button"
-                onPress={async () => {
-                  await lightTap();
-                  resetTestDate();
-                }}
-                style={{
-                  minHeight: 38,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: palette.line,
-                  backgroundColor: palette.surface,
-                  paddingHorizontal: 12,
-                }}>
-                <Text selectable style={{ color: palette.ink, fontSize: 12, fontWeight: '900' }}>
-                  Reset
-                </Text>
-              </AnimatedPressable>
-            ) : null}
-
-            <AnimatedPressable
-              accessibilityRole="button"
-              onPress={async () => {
-                await lightTap();
-                advanceTestDay();
-              }}
-              style={{
-                minHeight: 38,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 7,
-                borderRadius: 999,
-                backgroundColor: palette.black,
-                paddingHorizontal: 13,
-              }}>
-              <IconSymbol name="calendar" color={palette.white} size={16} />
-              <Text selectable style={{ color: palette.white, fontSize: 12, fontWeight: '900' }}>
-                Advance day
-              </Text>
-            </AnimatedPressable>
-          </View>
-        </View>
-
-        <View style={{ gap: 4 }}>
+        <View style={{ gap: 7 }}>
           <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '900' }}>
             NEXT REPLACEMENT
           </Text>
-          <Text selectable style={{ color: palette.ink, fontSize: compact ? 28 : 32, lineHeight: compact ? 31 : 35, fontWeight: '900' }}>
+          <Text selectable style={{ color: palette.ink, fontSize: compact ? 28 : 32, lineHeight: compact ? 36 : 40, fontWeight: '900' }}>
             {nearestLens
               ? `${nearestLens.eye === 'left' ? 'Left' : 'Right'} lens`
               : 'No active lenses'}
           </Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 14, lineHeight: 20, fontWeight: '700' }}>
+          <Text selectable style={{ color: palette.muted, fontSize: 14, lineHeight: 22, fontWeight: '700' }}>
             {nearestLens
               ? formatShortDate(nearestLens.expires_at)
               : 'Open a pack for either eye to start tracking.'}
           </Text>
         </View>
-
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: palette.line,
-            paddingTop: 12,
-            flexDirection: 'row',
-            gap: 10,
-          }}>
-          <View style={{ flex: 1 }}>
-            <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
-              ACTIVE LENSES
-            </Text>
-            <Text selectable style={{ color: palette.ink, fontSize: 23, fontWeight: '900', fontVariant: ['tabular-nums'] }}>
-              {activeLenses.length}/2
-            </Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
-              DEFAULT
-            </Text>
-            <Text selectable numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.ink, fontSize: 17, fontWeight: '900' }}>
-              {settings.defaultLensType}
-            </Text>
-          </View>
-        </View>
       </Card>
 
       {!isReady ? (
-        <Text selectable style={{ color: palette.muted, fontSize: 16 }}>
-          Loading lenses...
-        </Text>
+        <Card style={{ gap: 8 }}>
+          <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '900' }}>
+            Loading lenses
+          </Text>
+          <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
+            Preparing your current lens status.
+          </Text>
+        </Card>
       ) : (
         <View
           style={{
             width: '100%',
             maxWidth: 520,
             alignSelf: 'center',
-            flexDirection: 'row',
-            alignItems: 'stretch',
-            gap: panelGap,
+            gap: 12,
           }}>
+          <View style={{ gap: 3 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: 21, fontWeight: '900' }}>
+              Current lenses
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
+              Left and right lenses are tracked separately.
+            </Text>
+          </View>
           <LensCard
             state={eyes.left}
             disabled={isBusy}

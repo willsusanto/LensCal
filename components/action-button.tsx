@@ -1,6 +1,5 @@
-import { Text } from 'react-native';
-
 import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text } from '@/components/app-text';
 import { palette } from '@/constants/palette';
 
 type ActionButtonProps = {
@@ -12,12 +11,12 @@ type ActionButtonProps = {
 
 const toneStyles = {
   primary: {
-    backgroundColor: palette.coral,
-    borderColor: palette.coral,
+    backgroundColor: palette.black,
+    borderColor: palette.black,
     color: palette.white,
   },
   secondary: {
-    backgroundColor: 'rgba(255, 255, 255, 0.62)',
+    backgroundColor: palette.surface,
     borderColor: palette.line,
     color: palette.ink,
   },
@@ -56,7 +55,7 @@ export function ActionButton({
         borderWidth: 1,
         borderColor: style.borderColor,
         backgroundColor: style.backgroundColor,
-        boxShadow: tone === 'primary' ? `0 12px 24px ${palette.softShadow}` : 'none',
+        boxShadow: tone === 'primary' ? `0 14px 28px ${palette.shadow}` : 'none',
         opacity: disabled ? 0.45 : 1,
         paddingHorizontal: 12,
         paddingVertical: 10,

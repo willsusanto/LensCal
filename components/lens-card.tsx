@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AnimatedPressable } from '@/components/animated-pressable';
+import { Text } from '@/components/app-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
-import { daysRemaining, daysUsed, formatShortDate, lensDurationDays } from '@/lib/date-utils';
+import { daysRemaining, daysUsed, displayLensType, formatShortDate, lensDurationDays } from '@/lib/date-utils';
 import type { Eye, EyeState } from '@/types/lens';
 
 type LensCardProps = {
@@ -22,16 +23,16 @@ function titleForEye(eye: Eye) {
 function accentForEye(eye: Eye) {
   return eye === 'left'
     ? {
-        strong: palette.black,
+        strong: palette.blueDeep,
         soft: palette.surfaceBlue,
         border: palette.lineStrong,
         rail: palette.blueDeep,
       }
     : {
         strong: palette.black,
-        soft: palette.faint,
+        soft: palette.surfaceSoft,
         border: palette.line,
-        rail: palette.blue,
+        rail: palette.black,
       };
 }
 
@@ -48,72 +49,113 @@ export function LensCard({
   const remaining = lens ? daysRemaining(lens.expires_at, currentDate) : 0;
   const progress = lens ? Math.min(1, used / duration) : 0;
   const accent = accentForEye(state.eye);
+  const isExpired = remaining < 0;
+  const replaceLabel = isExpired ? `${Math.abs(remaining)}d overdue` : `${remaining}d left`;
 
   return (
     <Card
       style={{
-        minWidth: 0,
-        flex: 1,
-        flexBasis: '48%',
-        flexShrink: 1,
-        gap: compact ? 9 : 11,
-        padding: compact ? 10 : 12,
+        width: '100%',
+        gap: compact ? 12 : 14,
+        padding: compact ? 14 : 16,
       }}>
-      <View style={{ alignItems: 'center', gap: compact ? 6 : 8 }}>
-        <View
-          style={{
-            width: compact ? 48 : 54,
-            height: compact ? 48 : 54,
-            borderRadius: compact ? 24 : 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: palette.coralSoft,
-            boxShadow: `0 10px 24px ${palette.softShadow}`,
-          }}>
-          <IconSymbol name="eye.fill" color={accent.strong} size={compact ? 28 : 30} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 }}>
+          <View
+            style={{
+              width: compact ? 48 : 52,
+              height: compact ? 48 : 52,
+              borderRadius: compact ? 24 : 26,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: accent.soft,
+            }}>
+            <IconSymbol name="eye.fill" color={accent.strong} size={compact ? 27 : 29} />
+          </View>
+
+          <View style={{ flexShrink: 1, gap: 3 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: compact ? 20 : 22, fontWeight: '900' }}>
+              {titleForEye(state.eye)} lens
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
+              {lens ? `${displayLensType(lens.lens_type)} cycle` : 'No active lens'}
+            </Text>
+          </View>
         </View>
 
-        <View style={{ alignItems: 'center', gap: 3 }}>
-          <Text selectable style={{ color: palette.ink, fontSize: compact ? 18 : 20, fontWeight: '900' }}>
-            {titleForEye(state.eye)}
+        <View
+          style={{
+            borderRadius: 999,
+            backgroundColor: lens ? (isExpired ? palette.dangerBg : palette.surfaceBlue) : palette.surfaceSoft,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}>
+          <Text
+            selectable
+            style={{
+              color: lens ? (isExpired ? palette.danger : palette.blueDeep) : palette.muted,
+              fontSize: 12,
+              fontWeight: '900',
+            }}>
+            {lens ? replaceLabel : 'READY'}
           </Text>
         </View>
       </View>
 
       {lens ? (
-        <View style={{ alignItems: 'center', gap: 2 }}>
-          <Text selectable style={{ color: palette.muted, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
-            Day
-          </Text>
-          <Text
-            selectable
+        <View style={{ gap: 12 }}>
+          <View
             style={{
-              color: palette.ink,
-              fontSize: compact ? 42 : 48,
-              lineHeight: compact ? 46 : 52,
-              fontWeight: '900',
-              fontVariant: ['tabular-nums'],
+              borderRadius: 8,
+              borderCurve: 'continuous',
+              backgroundColor: palette.surfaceSoft,
+              padding: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
             }}>
-            {used}
-          </Text>
-          <Text selectable style={{ color: palette.muted, fontSize: compact ? 12 : 13, fontWeight: '700' }}>
-            of {duration}
-          </Text>
+            <View style={{ gap: 2 }}>
+              <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+                DAY
+              </Text>
+              <Text
+                selectable
+                style={{
+                  color: palette.ink,
+                  fontSize: compact ? 38 : 42,
+                  lineHeight: compact ? 42 : 46,
+                  fontWeight: '900',
+                  fontVariant: ['tabular-nums'],
+                }}>
+                {used}
+              </Text>
+            </View>
+
+            <View style={{ alignItems: 'flex-end', gap: 2 }}>
+              <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+                REPLACE BY
+              </Text>
+              <Text selectable style={{ color: palette.ink, fontSize: 19, fontWeight: '900' }}>
+                {formatShortDate(lens.expires_at)}
+              </Text>
+            </View>
+          </View>
+
           <View
             style={{
               width: '100%',
-              height: 6,
+              height: 8,
               borderRadius: 999,
               backgroundColor: palette.faint,
-              marginTop: 7,
               overflow: 'hidden',
             }}>
             <View
               style={{
                 width: `${progress * 100}%`,
-                height: 6,
+                height: 8,
                 borderRadius: 999,
-                backgroundColor: remaining < 0 ? palette.danger : accent.rail,
+                backgroundColor: isExpired ? palette.danger : accent.rail,
               }}
             />
           </View>
@@ -122,41 +164,36 @@ export function LensCard({
         <View
           style={{
             minHeight: compact ? 76 : 86,
-            alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 8,
             borderCurve: 'continuous',
-            backgroundColor: palette.surfaceSoft,
-            padding: 10,
+            borderWidth: 1,
+            borderColor: palette.line,
+            backgroundColor: palette.surfaceBlue,
+            padding: 14,
             gap: 5,
           }}>
-          <Text selectable style={{ color: palette.ink, fontSize: compact ? 18 : 20, fontWeight: '900' }}>
+          <Text selectable style={{ color: palette.ink, fontSize: compact ? 19 : 21, fontWeight: '900' }}>
             Start fresh
           </Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
+          <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '700' }}>
             Open a pack for a fresh date.
           </Text>
         </View>
       )}
 
-      {lens ? (
-        <View style={{ alignItems: 'center', gap: 5 }}>
-          <Text
-            selectable
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={{ color: palette.inkSoft, fontSize: compact ? 12 : 13, fontWeight: '800', textAlign: 'center' }}>
-            Replace by {formatShortDate(lens.expires_at)}
+      {lens && state.latestUncomfortableEvent ? (
+        <View
+          style={{
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            backgroundColor: palette.warningBg,
+            paddingHorizontal: 12,
+            paddingVertical: 9,
+          }}>
+          <Text selectable style={{ color: palette.warning, fontSize: compact ? 12 : 13, fontWeight: '800' }}>
+            Feels off since {formatShortDate(state.latestUncomfortableEvent.event_at)}
           </Text>
-          {state.latestUncomfortableEvent ? (
-            <Text
-              selectable
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={{ color: palette.warning, fontSize: compact ? 11 : 12, fontWeight: '800', textAlign: 'center' }}>
-              Feels off · {formatShortDate(state.latestUncomfortableEvent.event_at)}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 
@@ -171,7 +208,7 @@ export function LensCard({
           justifyContent: 'center',
           gap: compact ? 6 : 8,
           borderRadius: 999,
-          backgroundColor: lens ? palette.black : palette.coral,
+          backgroundColor: lens ? palette.black : palette.blueDeep,
           opacity: disabled ? 0.45 : 1,
           paddingHorizontal: 10,
           paddingVertical: 10,

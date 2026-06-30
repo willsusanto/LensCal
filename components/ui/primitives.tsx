@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { Text, View, type ViewStyle } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 
+import { Text } from '@/components/app-text';
 import { palette } from '@/constants/palette';
 
 export function Card({
@@ -20,12 +21,12 @@ export function Card({
         }
       : tone === 'soft'
         ? {
-            backgroundColor: 'rgba(255, 255, 255, 0.62)',
+            backgroundColor: palette.surfaceBlue,
             borderColor: palette.line,
           }
         : {
             backgroundColor: palette.surface,
-            borderColor: 'rgba(255, 255, 255, 0.72)',
+            borderColor: palette.line,
           };
 
   return (
@@ -35,7 +36,7 @@ export function Card({
         borderCurve: 'continuous',
         borderWidth: 1,
         padding: 16,
-        boxShadow: `0 18px 44px ${palette.softShadow}`,
+        boxShadow: `0 14px 34px ${palette.softShadow}`,
         ...toneStyle,
         ...style,
       }}>
@@ -53,12 +54,12 @@ export function Badge({
 }) {
   const toneStyle = {
     primary: {
-      backgroundColor: palette.coral,
+      backgroundColor: palette.blueDeep,
       color: palette.white,
     },
     secondary: {
-      backgroundColor: palette.faint,
-      color: palette.muted,
+      backgroundColor: palette.surfaceBlue,
+      color: palette.blueDeep,
     },
     dark: {
       backgroundColor: palette.black,
