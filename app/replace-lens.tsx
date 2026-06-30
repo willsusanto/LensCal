@@ -40,13 +40,13 @@ export default function ReplaceLensScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ eye?: string }>();
   const eye = normalizeEye(params.eye);
-  const { settings, replaceLens, isBusy, eyes } = useLens();
+  const { currentDate, settings, replaceLens, isBusy, eyes } = useLens();
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
   const [notes, setNotes] = useState('');
   const activeLens = eyes[eye].activeLens;
   const otherEye: Eye = eye === 'left' ? 'right' : 'left';
   const otherLens = eyes[otherEye].activeLens;
-  const expiresAt = expirationFor(new Date(), lensType, settings.monthlyReplacementDays);
+  const expiresAt = expirationFor(currentDate, lensType, settings.monthlyReplacementDays);
   const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
   const accent = accentForEye(eye);
   const insets = useSafeAreaInsets();
@@ -80,7 +80,7 @@ export default function ReplaceLensScreen() {
             {activeLens ? 'Change' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
-            Starts today. Reminder: {formatShortDate(expiresAt)}
+            Starts {formatShortDate(currentDate)}. Reminder: {formatShortDate(expiresAt)}
           </Text>
         </View>
       </View>

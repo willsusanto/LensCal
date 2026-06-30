@@ -11,6 +11,7 @@ import type { Eye, EyeState } from '@/types/lens';
 type LensCardProps = {
   state: EyeState;
   disabled: boolean;
+  currentDate: Date;
   compact?: boolean;
 };
 
@@ -37,13 +38,14 @@ function accentForEye(eye: Eye) {
 export function LensCard({
   state,
   disabled,
+  currentDate,
   compact = false,
 }: LensCardProps) {
   const router = useRouter();
   const lens = state.activeLens;
   const duration = lens ? lensDurationDays(lens.opened_at, lens.expires_at) : 28;
-  const used = lens ? daysUsed(lens.opened_at) : 0;
-  const remaining = lens ? daysRemaining(lens.expires_at) : 0;
+  const used = lens ? daysUsed(lens.opened_at, currentDate) : 0;
+  const remaining = lens ? daysRemaining(lens.expires_at, currentDate) : 0;
   const progress = lens ? Math.min(1, used / duration) : 0;
   const accent = accentForEye(state.eye);
 

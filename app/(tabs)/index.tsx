@@ -1,15 +1,27 @@
 import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnimatedPressable } from '@/components/animated-pressable';
 import { LensCard } from '@/components/lens-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Badge, Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
 import { formatReminderTime, formatShortDate } from '@/lib/date-utils';
+import { lightTap } from '@/lib/haptics';
 import { useLens } from '@/providers/lens-provider';
 
 export default function TodayScreen() {
-  const { eyes, isBusy, isReady, settings, syncMessage } = useLens();
+  const {
+    advanceTestDay,
+    currentDate,
+    eyes,
+    isBusy,
+    isReady,
+    resetTestDate,
+    settings,
+    syncMessage,
+    testDateOffsetDays,
+  } = useLens();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const compact = width < 390;
@@ -77,6 +89,77 @@ export default function TodayScreen() {
           </Text>
         </View>
 
+        <View
+          style={{
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            borderWidth: 1,
+            borderColor: palette.lineStrong,
+            backgroundColor: 'rgba(255, 255, 255, 0.72)',
+            flexDirection: compact ? 'column' : 'row',
+            alignItems: compact ? 'stretch' : 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            padding: 10,
+          }}>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+              TEST DATE
+            </Text>
+            <Text selectable numberOfLines={1} adjustsFontSizeToFit style={{ color: palette.ink, fontSize: 16, fontWeight: '900' }}>
+              {formatShortDate(currentDate)}
+              {testDateOffsetDays > 0 ? ` · +${testDateOffsetDays}d` : ''}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {testDateOffsetDays > 0 ? (
+              <AnimatedPressable
+                accessibilityRole="button"
+                onPress={async () => {
+                  await lightTap();
+                  resetTestDate();
+                }}
+                style={{
+                  minHeight: 38,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: palette.line,
+                  backgroundColor: palette.surface,
+                  paddingHorizontal: 12,
+                }}>
+                <Text selectable style={{ color: palette.ink, fontSize: 12, fontWeight: '900' }}>
+                  Reset
+                </Text>
+              </AnimatedPressable>
+            ) : null}
+
+            <AnimatedPressable
+              accessibilityRole="button"
+              onPress={async () => {
+                await lightTap();
+                advanceTestDay();
+              }}
+              style={{
+                minHeight: 38,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 7,
+                borderRadius: 999,
+                backgroundColor: palette.black,
+                paddingHorizontal: 13,
+              }}>
+              <IconSymbol name="calendar" color={palette.white} size={16} />
+              <Text selectable style={{ color: palette.white, fontSize: 12, fontWeight: '900' }}>
+                Advance day
+              </Text>
+            </AnimatedPressable>
+          </View>
+        </View>
+
         <View style={{ gap: 4 }}>
           <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '900' }}>
             NEXT REPLACEMENT
@@ -137,11 +220,13 @@ export default function TodayScreen() {
           <LensCard
             state={eyes.left}
             disabled={isBusy}
+            currentDate={currentDate}
             compact={compact}
           />
           <LensCard
             state={eyes.right}
             disabled={isBusy}
+            currentDate={currentDate}
             compact={compact}
           />
         </View>

@@ -14,6 +14,7 @@ import {
   updateSetting as updateSettingInDb,
 } from '@/lib/local-db';
 import { cancelLensNotification, scheduleReplacementNotification } from '@/lib/notifications';
+import { addDays } from '@/lib/date-utils';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncWithSupabase } from '@/lib/sync';
 import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage } from '@/types/lens';
@@ -29,6 +30,8 @@ type LensContextValue = {
   isReady: boolean;
   isBusy: boolean;
   settings: AppSettings;
+  currentDate: Date;
+  testDateOffsetDays: number;
   eyes: Record<Eye, EyeState>;
   history: LensUsage[];
   events: LensEvent[];
@@ -36,6 +39,8 @@ type LensContextValue = {
   isSupabaseConfigured: boolean;
   syncMessage: string | null;
   refresh: () => Promise<void>;
+  advanceTestDay: () => void;
+  resetTestDate: () => void;
   replaceLens: (eye: Eye, lensType: LensType, notes?: string | null) => Promise<void>;
   discardLens: (eye: Eye) => Promise<void>;
   markUncomfortable: (eye: Eye, notes?: string | null) => Promise<void>;
@@ -71,6 +76,8 @@ export function LensProvider({ children }: PropsWithChildren) {
   const [events, setEvents] = useState<LensEvent[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [testDateOffsetDays, setTestDateOffsetDays] = useState(0);
+  const currentDate = useMemo(() => addDays(new Date(), testDateOffsetDays), [testDateOffsetDays]);
 
   const refresh = useCallback(async () => {
     const [nextSettings, nextActiveLenses, nextHistory, nextEvents] = await Promise.all([
@@ -175,6 +182,7 @@ export function LensProvider({ children }: PropsWithChildren) {
         const nextLens = await openLens({
           eye,
           lensType,
+          openedAt: currentDate,
           notes,
           userId: session?.user.id ?? null,
           monthlyReplacementDays: settings.monthlyReplacementDays,
@@ -185,8 +193,16 @@ export function LensProvider({ children }: PropsWithChildren) {
         }
       });
     },
-    [eyes, runAction, session?.user.id, settings],
+    [currentDate, eyes, runAction, session?.user.id, settings],
   );
+
+  const advanceTestDay = useCallback(() => {
+    setTestDateOffsetDays((days) => days + 1);
+  }, []);
+
+  const resetTestDate = useCallback(() => {
+    setTestDateOffsetDays(0);
+  }, []);
 
   const discardLens = useCallback(
     async (eye: Eye) => {
@@ -361,6 +377,8 @@ export function LensProvider({ children }: PropsWithChildren) {
       isReady,
       isBusy,
       settings,
+      currentDate,
+      testDateOffsetDays,
       eyes,
       history,
       events,
@@ -368,6 +386,8 @@ export function LensProvider({ children }: PropsWithChildren) {
       isSupabaseConfigured,
       syncMessage,
       refresh,
+      advanceTestDay,
+      resetTestDate,
       replaceLens,
       discardLens,
       markUncomfortable,
@@ -381,12 +401,16 @@ export function LensProvider({ children }: PropsWithChildren) {
       isReady,
       isBusy,
       settings,
+      currentDate,
+      testDateOffsetDays,
       eyes,
       history,
       events,
       session,
       syncMessage,
       refresh,
+      advanceTestDay,
+      resetTestDate,
       replaceLens,
       discardLens,
       markUncomfortable,
