@@ -1,10 +1,13 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require('eslint/config');
-const expoConfig = require('eslint-config-expo/flat');
+const { FlatCompat } = require('@eslint/eslintrc');
 
-module.exports = defineConfig([
-  expoConfig,
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+/** @type {import('eslint').Linter.Config[]} */
+module.exports = [
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    ignores: ['dist/*'],
+    ignores: ['.next/**', 'public/sw.js', 'public/workbox-*.js'],
   },
-]);
+];
