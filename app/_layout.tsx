@@ -23,7 +23,7 @@ export default function RootLayout() {
             name="replace-lens"
             options={{
               presentation: 'modal',
-              title: 'Replace Lens',
+              title: 'Change Lens',
               headerShadowVisible: false,
               headerStyle: { backgroundColor: palette.background },
               headerTitleStyle: { color: palette.ink, fontWeight: '900' },

@@ -77,7 +77,7 @@ export default function ReplaceLensScreen() {
 
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text selectable style={{ color: palette.ink, fontSize: 30, fontWeight: '900' }}>
-            {activeLens ? 'Replace' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
+            {activeLens ? 'Change' : 'Open'} {eye === 'left' ? 'Left' : 'Right'}
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
             Starts today. Reminder: {formatShortDate(expiresAt)}
@@ -193,7 +193,7 @@ export default function ReplaceLensScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <ActionButton label={activeLens ? 'Replace Lens' : 'Open Lens'} tone="primary" disabled={isBusy} onPress={save} />
+        <ActionButton label={activeLens ? 'Change Lens' : 'Open Lens'} tone="primary" disabled={isBusy} onPress={save} />
         <ActionButton label="Cancel" disabled={isBusy} onPress={() => router.back()} />
       </View>
     </ScrollView>

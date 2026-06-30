@@ -12,8 +12,6 @@ type LensCardProps = {
   state: EyeState;
   disabled: boolean;
   compact?: boolean;
-  onDiscard: (eye: Eye) => void;
-  onMarkUncomfortable: (eye: Eye) => void;
 };
 
 function titleForEye(eye: Eye) {
@@ -64,8 +62,6 @@ export function LensCard({
   state,
   disabled,
   compact = false,
-  onDiscard,
-  onMarkUncomfortable,
 }: LensCardProps) {
   const router = useRouter();
   const lens = state.activeLens;
@@ -240,71 +236,27 @@ export function LensCard({
         </View>
       ) : null}
 
-      <View style={{ gap: 8 }}>
-        <AnimatedPressable
-          accessibilityRole="button"
-          disabled={disabled}
-          onPress={() => router.push(`/replace-lens?eye=${state.eye}` as never)}
-          style={{
-            minHeight: 42,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: compact ? 6 : 8,
-            borderRadius: 999,
-            backgroundColor: lens ? palette.black : palette.coral,
-            opacity: disabled ? 0.45 : 1,
-            paddingHorizontal: 10,
-            paddingVertical: 10,
-          }}>
-          <IconSymbol name="arrow.triangle.2.circlepath" color={palette.white} size={compact ? 17 : 18} />
-          <Text selectable style={{ color: palette.white, fontSize: compact ? 12 : 13, fontWeight: '900' }}>
-            {lens ? 'Replace' : 'Open pack'}
-          </Text>
-        </AnimatedPressable>
-
-        {lens ? (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <AnimatedPressable
-              accessibilityRole="button"
-              accessibilityLabel={`Mark ${state.eye} lens uncomfortable`}
-              disabled={disabled || !lens}
-              onPress={() => onMarkUncomfortable(state.eye)}
-              style={{
-                minHeight: 42,
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#F1D596',
-                backgroundColor: palette.warningBg,
-                opacity: disabled || !lens ? 0.4 : 1,
-              }}>
-              <IconSymbol name="exclamationmark.triangle.fill" color={palette.warning} size={20} />
-            </AnimatedPressable>
-
-            <AnimatedPressable
-              accessibilityRole="button"
-              accessibilityLabel={`Discard ${state.eye} lens`}
-              disabled={disabled || !lens}
-              onPress={() => onDiscard(state.eye)}
-              style={{
-                minHeight: 42,
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#F0B7C0',
-                backgroundColor: palette.dangerBg,
-                opacity: disabled || !lens ? 0.4 : 1,
-              }}>
-              <IconSymbol name="trash.fill" color={palette.danger} size={20} />
-            </AnimatedPressable>
-          </View>
-        ) : null}
-      </View>
+      <AnimatedPressable
+        accessibilityRole="button"
+        disabled={disabled}
+        onPress={() => router.push(`/replace-lens?eye=${state.eye}` as never)}
+        style={{
+          minHeight: 42,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: compact ? 6 : 8,
+          borderRadius: 999,
+          backgroundColor: lens ? palette.black : palette.coral,
+          opacity: disabled ? 0.45 : 1,
+          paddingHorizontal: 10,
+          paddingVertical: 10,
+        }}>
+        <IconSymbol name="arrow.triangle.2.circlepath" color={palette.white} size={compact ? 17 : 18} />
+        <Text selectable style={{ color: palette.white, fontSize: compact ? 12 : 13, fontWeight: '900' }}>
+          {lens ? 'Change lens' : 'Open pack'}
+        </Text>
+      </AnimatedPressable>
     </Card>
   );
 }
