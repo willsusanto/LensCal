@@ -110,6 +110,49 @@ export default function TodayScreen() {
               : 'Open left or right lens to start tracking.'}
           </Text>
         </View>
+
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {(['left', 'right'] as Eye[]).map((eye) => {
+            const lens = eyes[eye].activeLens;
+            const remaining = lens ? daysRemaining(lens.expires_at) : null;
+
+            return (
+              <View
+                key={eye}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  borderRadius: 8,
+                  borderCurve: 'continuous',
+                  borderWidth: 1,
+                  borderColor: palette.line,
+                  backgroundColor: eye === 'left' ? palette.surfaceBlue : palette.faint,
+                  padding: 12,
+                  gap: 4,
+                }}>
+                <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+                  {eye === 'left' ? 'LEFT' : 'RIGHT'}
+                </Text>
+                <Text
+                  selectable
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  style={{ color: palette.ink, fontSize: 17, fontWeight: '900' }}>
+                  {lens ? formatShortDate(lens.expires_at) : 'Not set'}
+                </Text>
+                <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '700' }}>
+                  {lens
+                    ? remaining === 0
+                      ? 'Due today'
+                      : remaining! < 0
+                        ? `${Math.abs(remaining!)}d overdue`
+                        : `${remaining}d left`
+                    : 'No tracker'}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       {!isReady ? (

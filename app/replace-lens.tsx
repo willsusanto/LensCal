@@ -43,6 +43,8 @@ export default function ReplaceLensScreen() {
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
   const [notes, setNotes] = useState('');
   const activeLens = eyes[eye].activeLens;
+  const otherEye: Eye = eye === 'left' ? 'right' : 'left';
+  const otherLens = eyes[otherEye].activeLens;
   const expiresAt = expirationFor(new Date(), lensType);
   const accent = accentForEye(eye);
 
@@ -117,6 +119,62 @@ export default function ReplaceLensScreen() {
           <Text selectable style={{ color: '#C7D3E0', fontSize: 13, fontWeight: '700' }}>
             {displayLensType(lensType)} lens opened today
           </Text>
+        </View>
+
+        <View
+          style={{
+            borderRadius: 8,
+            borderCurve: 'continuous',
+            borderWidth: 1,
+            borderColor: palette.line,
+            backgroundColor: palette.surfaceBlue,
+            padding: 14,
+            gap: 10,
+          }}>
+          <Text selectable style={{ color: palette.blueDeep, fontSize: 12, fontWeight: '900' }}>
+            TRACKER UPDATE
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+                CURRENT {eye.toUpperCase()}
+              </Text>
+              <Text selectable style={{ color: palette.ink, fontSize: 16, fontWeight: '900' }}>
+                {activeLens ? formatShortDate(activeLens.expires_at) : 'None'}
+              </Text>
+            </View>
+
+            <Text selectable style={{ color: palette.muted, fontSize: 13, fontWeight: '900' }}>
+              to
+            </Text>
+
+            <View style={{ flex: 1, alignItems: 'flex-end', gap: 3 }}>
+              <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
+                NEW {eye.toUpperCase()}
+              </Text>
+              <Text selectable style={{ color: palette.ink, fontSize: 16, fontWeight: '900' }}>
+                {formatShortDate(expiresAt)}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: palette.lineStrong,
+              paddingTop: 10,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}>
+            <Text selectable style={{ color: palette.muted, fontSize: 12, fontWeight: '800' }}>
+              {otherEye === 'left' ? 'Left' : 'Right'} stays
+            </Text>
+            <Text selectable style={{ color: palette.ink, fontSize: 12, fontWeight: '900' }}>
+              {otherLens ? formatShortDate(otherLens.expires_at) : 'Not set'}
+            </Text>
+          </View>
         </View>
 
         <View style={{ gap: 8 }}>
