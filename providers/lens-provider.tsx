@@ -75,14 +75,28 @@ export function LensProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isMounted = true;
 
+    const applyUser = (nextUser: User | null) => {
+      if (!isMounted) return;
+
+      setUser(nextUser);
+      setIsReady(false);
+
+      if (!nextUser) {
+        setSettings(defaultSettings);
+        setActiveLenses([]);
+        setHistory([]);
+        setEvents([]);
+      }
+    };
+
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (isMounted) setUser(user);
+      applyUser(user);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) setUser(session?.user ?? null);
+      applyUser(session?.user ?? null);
     });
 
     return () => {
@@ -109,16 +123,17 @@ export function LensProvider({ children }: PropsWithChildren) {
 
   // Load data whenever the authenticated user changes
   useEffect(() => {
-    if (!user) {
-      setIsReady(false);
-      setActiveLenses([]);
-      setHistory([]);
-      setEvents([]);
-      return;
-    }
+    if (!user) return;
 
-    setIsReady(false);
-    refresh().finally(() => setIsReady(true));
+    let isMounted = true;
+
+    refresh().finally(() => {
+      if (isMounted) setIsReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, refresh]);
 
   const eyes = useMemo<Record<Eye, EyeState>>(() => {
