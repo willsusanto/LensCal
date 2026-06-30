@@ -3,9 +3,9 @@ import { Text, View } from 'react-native';
 
 import { AnimatedPressable } from '@/components/animated-pressable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Badge, Card } from '@/components/ui/primitives';
+import { Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
-import { daysRemaining, daysUsed, displayLensType, formatShortDate, lensDurationDays } from '@/lib/date-utils';
+import { daysRemaining, daysUsed, formatShortDate, lensDurationDays } from '@/lib/date-utils';
 import type { Eye, EyeState } from '@/types/lens';
 
 type LensCardProps = {
@@ -34,30 +34,6 @@ function accentForEye(eye: Eye) {
       };
 }
 
-function statusTone(remaining: number) {
-  if (remaining < 0) {
-    return {
-      label: 'Expired',
-      backgroundColor: palette.dangerBg,
-      color: palette.danger,
-    };
-  }
-
-  if (remaining <= 2) {
-    return {
-      label: 'Due soon',
-      backgroundColor: palette.warningBg,
-      color: palette.warning,
-    };
-  }
-
-  return {
-    label: 'Active',
-    backgroundColor: palette.surfaceBlue,
-    color: palette.blueDeep,
-  };
-}
-
 export function LensCard({
   state,
   disabled,
@@ -69,7 +45,6 @@ export function LensCard({
   const used = lens ? daysUsed(lens.opened_at) : 0;
   const remaining = lens ? daysRemaining(lens.expires_at) : 0;
   const progress = lens ? Math.min(1, used / duration) : 0;
-  const tone = lens ? statusTone(remaining) : null;
   const accent = accentForEye(state.eye);
 
   return (
@@ -83,20 +58,6 @@ export function LensCard({
         padding: compact ? 10 : 12,
       }}>
       <View style={{ alignItems: 'center', gap: compact ? 6 : 8 }}>
-        <View
-          style={{
-            alignSelf: 'stretch',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-          }}>
-          <Text selectable style={{ color: palette.muted, fontSize: 11, fontWeight: '900' }}>
-            {state.eye === 'left' ? 'LEFT EYE' : 'RIGHT EYE'}
-          </Text>
-          <Badge tone={lens ? 'primary' : 'secondary'}>{lens ? 'TRACKING' : 'EMPTY'}</Badge>
-        </View>
-
         <View
           style={{
             width: compact ? 48 : 54,
@@ -114,32 +75,7 @@ export function LensCard({
           <Text selectable style={{ color: palette.ink, fontSize: compact ? 18 : 20, fontWeight: '900' }}>
             {titleForEye(state.eye)}
           </Text>
-          <Text
-            selectable
-            numberOfLines={compact ? 1 : 2}
-            style={{
-              color: palette.muted,
-              fontSize: compact ? 11 : 12,
-              fontWeight: '700',
-              textAlign: 'center',
-            }}>
-            {lens ? `${displayLensType(lens.lens_type)} lens` : 'Ready to open'}
-          </Text>
         </View>
-
-        {tone ? (
-          <View
-            style={{
-              borderRadius: 999,
-              backgroundColor: tone.backgroundColor,
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-            }}>
-            <Text selectable style={{ color: tone.color, fontSize: compact ? 11 : 12, fontWeight: '800' }}>
-              {tone.label}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       {lens ? (
@@ -209,20 +145,6 @@ export function LensCard({
             adjustsFontSizeToFit
             style={{ color: palette.inkSoft, fontSize: compact ? 12 : 13, fontWeight: '800', textAlign: 'center' }}>
             Replace by {formatShortDate(lens.expires_at)}
-          </Text>
-          <Text
-            selectable
-            style={{
-              color: remaining < 0 ? palette.danger : palette.muted,
-              fontSize: compact ? 11 : 12,
-              fontWeight: '700',
-              textAlign: 'center',
-            }}>
-            {remaining < 0
-              ? `${Math.abs(remaining)} day${Math.abs(remaining) === 1 ? '' : 's'} overdue`
-              : remaining === 0
-                ? 'Due today'
-                : `${remaining} day${remaining === 1 ? '' : 's'} remaining`}
           </Text>
           {state.latestUncomfortableEvent ? (
             <Text

@@ -5,7 +5,7 @@ import { LensCard } from '@/components/lens-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Badge, Card } from '@/components/ui/primitives';
 import { palette } from '@/constants/palette';
-import { daysRemaining, formatReminderTime, formatShortDate } from '@/lib/date-utils';
+import { formatReminderTime, formatShortDate } from '@/lib/date-utils';
 import { useLens } from '@/providers/lens-provider';
 
 export default function TodayScreen() {
@@ -18,7 +18,6 @@ export default function TodayScreen() {
   const nearestLens = activeLenses
     .slice()
     .sort((a, b) => new Date(a!.expires_at).getTime() - new Date(b!.expires_at).getTime())[0];
-  const nearestRemaining = nearestLens ? daysRemaining(nearestLens.expires_at) : null;
 
   return (
     <ScrollView
@@ -89,13 +88,7 @@ export default function TodayScreen() {
           </Text>
           <Text selectable style={{ color: palette.muted, fontSize: 14, lineHeight: 20, fontWeight: '700' }}>
             {nearestLens
-              ? `${formatShortDate(nearestLens.expires_at)} · ${
-                  nearestRemaining === 0
-                    ? 'due today'
-                    : nearestRemaining! < 0
-                      ? `${Math.abs(nearestRemaining!)} day${Math.abs(nearestRemaining!) === 1 ? '' : 's'} overdue`
-                      : `${nearestRemaining} day${nearestRemaining === 1 ? '' : 's'} left`
-                }`
+              ? formatShortDate(nearestLens.expires_at)
               : 'Open a pack for either eye to start tracking.'}
           </Text>
         </View>
