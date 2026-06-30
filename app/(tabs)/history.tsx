@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { palette } from '@/constants/palette';
 import { displayLensType, formatDateTime, formatShortDate } from '@/lib/date-utils';
 import { useLens } from '@/providers/lens-provider';
@@ -20,6 +21,7 @@ function eventLabel(event: LensEvent) {
 
 function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) {
   const usageEvents = events.filter((event) => event.lens_usage_id === usage.id);
+  const isLeft = usage.eye === 'left';
 
   return (
     <View
@@ -28,29 +30,52 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
         borderRadius: 8,
         borderCurve: 'continuous',
         borderWidth: 1,
-        borderColor: palette.line,
+        borderColor: usage.status === 'active' ? palette.lineStrong : palette.line,
         backgroundColor: palette.surface,
         padding: 16,
       }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flexShrink: 1, gap: 4 }}>
-          <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '800' }}>
-            {usage.eye === 'left' ? 'Left Eye' : 'Right Eye'}
-          </Text>
-          <Text selectable style={{ color: palette.muted, fontSize: 14 }}>
-            {displayLensType(usage.lens_type)} lens
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
+          <View
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: isLeft ? palette.surfaceBlue : palette.faint,
+            }}>
+            <IconSymbol name="eye.fill" color={palette.black} size={24} />
+          </View>
+
+          <View style={{ flexShrink: 1, gap: 3 }}>
+            <Text selectable style={{ color: palette.ink, fontSize: 18, fontWeight: '900' }}>
+              {usage.eye === 'left' ? 'Left Eye' : 'Right Eye'}
+            </Text>
+            <Text selectable style={{ color: palette.muted, fontSize: 14, fontWeight: '700' }}>
+              {displayLensType(usage.lens_type)} lens
+            </Text>
+          </View>
+        </View>
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            borderRadius: 999,
+            backgroundColor: usage.status === 'active' ? palette.surfaceBlue : palette.faint,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}>
+          <Text
+            selectable
+            style={{
+              color: usage.status === 'active' ? palette.blueDeep : palette.muted,
+              fontSize: 12,
+              fontWeight: '900',
+              textTransform: 'uppercase',
+            }}>
+            {usage.status}
           </Text>
         </View>
-        <Text
-          selectable
-          style={{
-            color: usage.status === 'active' ? palette.blueDeep : palette.muted,
-            fontSize: 13,
-            fontWeight: '800',
-            textTransform: 'uppercase',
-          }}>
-          {usage.status}
-        </Text>
       </View>
 
       <Text selectable style={{ color: palette.inkSoft, fontSize: 15, fontWeight: '700' }}>
@@ -63,7 +88,7 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
         </Text>
       ) : null}
 
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: palette.faint, paddingTop: 10 }}>
         {usageEvents.map((event) => (
           <Text key={event.id} selectable style={{ color: palette.muted, fontSize: 14 }}>
             {eventLabel(event)} · {formatDateTime(event.event_at)}
