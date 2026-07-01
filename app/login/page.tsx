@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getSafeRedirectPath } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  function getPostLoginPath() {
+    if (typeof window === "undefined") return "/";
+    return getSafeRedirectPath(new URLSearchParams(window.location.search).get("next"));
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -31,12 +37,12 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
+        if (error) throw new Error("Could not create account. Check the details and try again.");
         setMessage("Account created. Check your email to confirm, then sign in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.push("/");
+        if (error) throw new Error("Invalid email or password.");
+        router.push(getPostLoginPath());
         router.refresh();
       }
     } catch (err) {
@@ -90,6 +96,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    maxLength={254}
                     autoComplete="email"
                     placeholder="you@example.com"
                   />
@@ -103,6 +110,8 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={8}
+                    maxLength={256}
                     autoComplete={isSignUp ? "new-password" : "current-password"}
                     placeholder="Password"
                   />

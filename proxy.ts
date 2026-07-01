@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { getSafeRedirectPath } from "@/lib/navigation";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function proxy(request: NextRequest) {
@@ -45,6 +46,8 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", getSafeRedirectPath(`${pathname}${request.nextUrl.search}`));
     return NextResponse.redirect(url);
   }
 
@@ -59,7 +62,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals, static files, and PWA assets.
-    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icon-.*\\.png|sw\\.js|workbox-.*\\.js).*)",
+    // Skip Next.js internals and public files with extensions.
+    "/((?!_next/static|_next/image|.*\\..*).*)",
   ],
 };
