@@ -15,13 +15,16 @@ import { useRouter } from 'next/navigation';
 import { DEFAULT_SETTINGS } from '@/constants/lens';
 import {
   discardActiveLens,
+  getActiveLensForEye,
   getActiveLenses,
   getEvents,
   getLensHistory,
   getSettings,
   insertEvent,
   openLens,
+  updateLensUsageDates,
   updateSetting as updateSettingInDb,
+  validateOpenLensInput,
 } from '@/lib/data';
 import { cancelLensNotification, scheduleReplacementNotification } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/client';
@@ -38,6 +41,11 @@ type LensContextValue = {
   replaceLens: (eye: Eye, lensType: LensType, notes?: string | null, openedAt?: Date) => Promise<void>;
   discardLens: (eye: Eye) => Promise<void>;
   markUncomfortable: (eye: Eye, notes?: string | null) => Promise<void>;
+  updateUsageDates: (
+    usageId: string,
+    openedAt: Date,
+    terminalEvent?: { id: string; eventAt: Date } | null,
+  ) => Promise<void>;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -166,15 +174,20 @@ export function LensProvider({ children }: PropsWithChildren) {
     async (eye: Eye, lensType: LensType, notes: string | null = null, openedAt: Date = new Date()) => {
       if (!user) return;
       await runAction(async () => {
-        const current = eyes[eye].activeLens;
+        validateOpenLensInput({
+          lensType,
+          openedAt,
+          notes,
+          monthlyReplacementDays: settings.monthlyReplacementDays,
+        });
+
+        const current = await getActiveLensForEye(supabase, user.id, eye);
         if (current) {
+          const didDiscard = await discardActiveLens(supabase, user.id, current.id);
+          if (!didDiscard) {
+            throw new Error('This lens changed before it could be replaced. Please try again.');
+          }
           await cancelLensNotification(current.id);
-          await discardActiveLens(supabase, user.id, current.id);
-          await insertEvent(supabase, {
-            userId: user.id,
-            lensUsageId: current.id,
-            eventType: 'replaced',
-          });
         }
 
         const newLens = await openLens(supabase, {
@@ -185,6 +198,14 @@ export function LensProvider({ children }: PropsWithChildren) {
           notes,
           monthlyReplacementDays: settings.monthlyReplacementDays,
         });
+
+        if (current) {
+          await insertEvent(supabase, {
+            userId: user.id,
+            lensUsageId: current.id,
+            eventType: 'replaced',
+          });
+        }
 
         await insertEvent(supabase, {
           userId: user.id,
@@ -197,18 +218,20 @@ export function LensProvider({ children }: PropsWithChildren) {
         await scheduleReplacementNotification(newLens, settings);
       });
     },
-    [eyes, runAction, settings, supabase, user],
+    [runAction, settings, supabase, user],
   );
 
   const discardLens = useCallback(
     async (eye: Eye) => {
       if (!user) return;
       await runAction(async () => {
-        const current = eyes[eye].activeLens;
+        const current = await getActiveLensForEye(supabase, user.id, eye);
         if (!current) return;
 
+        const didDiscard = await discardActiveLens(supabase, user.id, current.id);
+        if (!didDiscard) return;
+
         await cancelLensNotification(current.id);
-        await discardActiveLens(supabase, user.id, current.id);
         await insertEvent(supabase, {
           userId: user.id,
           lensUsageId: current.id,
@@ -216,14 +239,14 @@ export function LensProvider({ children }: PropsWithChildren) {
         });
       });
     },
-    [eyes, runAction, supabase, user],
+    [runAction, supabase, user],
   );
 
   const markUncomfortable = useCallback(
     async (eye: Eye, notes: string | null = null) => {
       if (!user) return;
       await runAction(async () => {
-        const current = eyes[eye].activeLens;
+        const current = await getActiveLensForEye(supabase, user.id, eye);
         if (!current) return;
 
         await insertEvent(supabase, {
@@ -234,7 +257,29 @@ export function LensProvider({ children }: PropsWithChildren) {
         });
       });
     },
-    [eyes, runAction, supabase, user],
+    [runAction, supabase, user],
+  );
+
+  const updateUsageDates = useCallback(
+    async (usageId: string, openedAt: Date, terminalEvent: { id: string; eventAt: Date } | null = null) => {
+      if (!user) return;
+      await runAction(async () => {
+        const updatedUsage = await updateLensUsageDates(supabase, {
+          userId: user.id,
+          lensUsageId: usageId,
+          openedAt,
+          terminalEventId: terminalEvent?.id,
+          terminalEventAt: terminalEvent?.eventAt,
+          monthlyReplacementDays: settings.monthlyReplacementDays,
+        });
+
+        if (updatedUsage.status === 'active') {
+          await cancelLensNotification(updatedUsage.id);
+          await scheduleReplacementNotification(updatedUsage, settings);
+        }
+      });
+    },
+    [runAction, settings, supabase, user],
   );
 
   const updateSetting = useCallback(
@@ -265,6 +310,7 @@ export function LensProvider({ children }: PropsWithChildren) {
       replaceLens,
       discardLens,
       markUncomfortable,
+      updateUsageDates,
       updateSetting,
       signOut,
     }),
@@ -279,6 +325,7 @@ export function LensProvider({ children }: PropsWithChildren) {
       replaceLens,
       discardLens,
       markUncomfortable,
+      updateUsageDates,
       updateSetting,
       signOut,
     ],

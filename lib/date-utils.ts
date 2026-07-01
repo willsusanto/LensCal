@@ -1,4 +1,4 @@
-import type { LensType } from '@/types/lens';
+import type { LensType, NotificationReminder } from '@/types/lens';
 
 export const lensTypeDays: Record<LensType, number> = {
   daily: 1,
@@ -64,6 +64,13 @@ export function formatReminderTime(hour: number, minute: number) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
+}
+
+export function formatNotificationReminder(reminder: NotificationReminder) {
+  return `${reminder.daysBefore} ${reminder.daysBefore === 1 ? 'day' : 'days'} before at ${formatReminderTime(
+    reminder.hour,
+    reminder.minute,
+  )}`;
 }
 
 export function displayLensType(lensType: LensType) {

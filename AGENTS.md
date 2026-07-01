@@ -102,7 +102,8 @@ LensUsage     = id, user_id, eye, opened_at, expires_at, lens_type,
 LensEvent     = id, user_id, lens_usage_id, event_type, event_at,
                 notes, created_at
 AppSettings   = defaultLensType, monthlyReplacementDays,
-                notificationsEnabled, reminderHour, reminderMinute
+                notificationsEnabled, notificationReminders
+NotificationReminder = daysBefore, hour, minute
 EyeState      = { eye, activeLens, latestUncomfortableEvent }
 ```
 
@@ -113,6 +114,7 @@ Important constraints:
 - `dirty`, `notification_id`, SQLite, and sync flags are gone.
 - Notes are capped at `MAX_NOTE_LENGTH` from `constants/lens.ts`.
 - Monthly replacement days and reminder time bounds live in `SETTINGS_LIMITS`.
+- Notification reminders are deduplicated by `daysBefore` + `hour` + `minute` and capped at `MAX_NOTIFICATION_REMINDERS` (currently 3).
 
 ---
 
@@ -192,7 +194,7 @@ Supabase client usage:
   - browser support/permission state
   - requesting permission
   - sending a test notification
-  - scheduling local in-session reminders for active lenses
+  - scheduling up to 3 local in-session reminders for active lenses
   - cancelling timers and visible notifications by lens id
 
 Limitations:

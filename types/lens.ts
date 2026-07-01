@@ -29,12 +29,17 @@ export type LensEvent = {
   created_at: string;
 };
 
+export type NotificationReminder = {
+  daysBefore: number;
+  hour: number;
+  minute: number;
+};
+
 export type AppSettings = {
   defaultLensType: LensType;
   monthlyReplacementDays: number;
   notificationsEnabled: boolean;
-  reminderHour: number;
-  reminderMinute: number;
+  notificationReminders: NotificationReminder[];
 };
 
 export type EyeState = {

@@ -1,4 +1,5 @@
 import type { AppSettings, LensUsage } from '@/types/lens';
+import type { NotificationReminder } from '@/types/lens';
 
 export type NotificationSupportState =
   | 'unsupported'
@@ -17,25 +18,36 @@ function isBrowser() {
   return typeof window !== 'undefined';
 }
 
-function reminderDateFor(lens: LensUsage, settings: AppSettings) {
+function reminderDateFor(lens: LensUsage, reminder: NotificationReminder) {
   const reminderAt = new Date(lens.expires_at);
-  reminderAt.setHours(settings.reminderHour, settings.reminderMinute, 0, 0);
+  reminderAt.setDate(reminderAt.getDate() - reminder.daysBefore);
+  reminderAt.setHours(reminder.hour, reminder.minute, 0, 0);
   return reminderAt;
 }
 
-function reminderStorageKey(lens: LensUsage, settings: AppSettings) {
-  const reminderAt = reminderDateFor(lens, settings).toISOString();
+function reminderNotificationId(lens: LensUsage, reminder: NotificationReminder) {
+  return `${lens.id}:${reminder.daysBefore}:${reminder.hour}:${reminder.minute}`;
+}
+
+function reminderStorageKey(lens: LensUsage, reminder: NotificationReminder) {
+  const reminderAt = reminderDateFor(lens, reminder).toISOString();
   return `lenscal:reminder-sent:${lens.id}:${reminderAt}`;
 }
 
-function wasReminderSent(lens: LensUsage, settings: AppSettings) {
+function wasReminderSent(lens: LensUsage, reminder: NotificationReminder) {
   if (!isBrowser()) return false;
-  return window.localStorage.getItem(reminderStorageKey(lens, settings)) === '1';
+  return window.localStorage.getItem(reminderStorageKey(lens, reminder)) === '1';
 }
 
-function markReminderSent(lens: LensUsage, settings: AppSettings) {
+function markReminderSent(lens: LensUsage, reminder: NotificationReminder) {
   if (!isBrowser()) return;
-  window.localStorage.setItem(reminderStorageKey(lens, settings), '1');
+  window.localStorage.setItem(reminderStorageKey(lens, reminder), '1');
+}
+
+function duePhrase(daysBefore: number) {
+  if (daysBefore === 0) return 'today';
+  if (daysBefore === 1) return 'tomorrow';
+  return `in ${daysBefore} days`;
 }
 
 async function getServiceWorkerRegistration() {
@@ -85,15 +97,18 @@ export async function cancelLensNotification(
 ): Promise<void> {
   if (!notificationId) return;
 
-  const timer = reminderTimers.get(notificationId);
-  if (timer) {
+  for (const [timerId, timer] of reminderTimers) {
+    if (timerId !== notificationId && !timerId.startsWith(`${notificationId}:`)) continue;
+
     clearTimeout(timer);
-    reminderTimers.delete(notificationId);
+    reminderTimers.delete(timerId);
   }
 
   const registration = await getServiceWorkerRegistration();
-  const notifications = await registration?.getNotifications({ tag: notificationId });
-  notifications?.forEach((notification) => notification.close());
+  const notifications = await registration?.getNotifications();
+  notifications
+    ?.filter((notification) => notification.tag === notificationId || notification.tag.startsWith(`${notificationId}:`))
+    .forEach((notification) => notification.close());
 }
 
 export async function showTestNotification(): Promise<boolean> {
@@ -118,34 +133,43 @@ export async function scheduleReplacementNotification(
 
   await cancelLensNotification(lens.id);
 
-  const reminderAt = reminderDateFor(lens, settings);
-  const showReminder = async () => {
-    if (wasReminderSent(lens, settings)) return;
+  if (settings.notificationReminders.length === 0) return null;
 
-    const didShow = await showBrowserNotification('Time to replace your lens', {
-      body: `Your ${lens.eye} ${lens.lens_type} lens is due for replacement.`,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: lens.id,
-      renotify: true,
-      data: { url: '/' },
-    });
+  for (const reminder of settings.notificationReminders) {
+    const notificationId = reminderNotificationId(lens, reminder);
+    const reminderAt = reminderDateFor(lens, reminder);
+    const showReminder = async () => {
+      if (wasReminderSent(lens, reminder)) return;
 
-    if (didShow) markReminderSent(lens, settings);
-  };
+      const didShow = await showBrowserNotification('Time to replace your lens', {
+        body: `Your ${lens.eye} ${lens.lens_type} lens is due for replacement ${duePhrase(
+          reminder.daysBefore,
+        )}.`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: notificationId,
+        renotify: true,
+        data: { url: '/' },
+      });
 
-  const schedule = () => {
-    const delay = reminderAt.getTime() - Date.now();
+      if (didShow) markReminderSent(lens, reminder);
+    };
 
-    if (delay <= 0) {
-      void showReminder();
-      return;
-    }
+    const schedule = () => {
+      const delay = reminderAt.getTime() - Date.now();
 
-    const timer = setTimeout(schedule, Math.min(delay, maxTimeoutDelay));
-    reminderTimers.set(lens.id, timer);
-  };
+      if (delay <= 0) {
+        reminderTimers.delete(notificationId);
+        void showReminder();
+        return;
+      }
 
-  schedule();
+      const timer = setTimeout(schedule, Math.min(delay, maxTimeoutDelay));
+      reminderTimers.set(notificationId, timer);
+    };
+
+    schedule();
+  }
+
   return lens.id;
 }

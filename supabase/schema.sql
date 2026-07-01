@@ -114,8 +114,41 @@ create table if not exists public.user_settings (
   reminder_minute integer not null default 0
     constraint user_settings_reminder_minute_chk
     check (reminder_minute between 0 and 59),
+  notification_reminders jsonb not null default '[{"daysBefore":0,"hour":8,"minute":0}]'::jsonb
+    constraint user_settings_notification_reminders_chk
+    check (
+      jsonb_typeof(notification_reminders) = 'array'
+      and jsonb_array_length(notification_reminders) <= 3
+    ),
   updated_at timestamptz not null default now()
 );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'user_settings'
+      and column_name = 'notification_reminders'
+  ) then
+    alter table public.user_settings
+      add column notification_reminders jsonb;
+
+    update public.user_settings
+      set notification_reminders = jsonb_build_array(
+        jsonb_build_object(
+          'daysBefore', 0,
+          'hour', reminder_hour,
+          'minute', reminder_minute
+        )
+      );
+
+    alter table public.user_settings
+      alter column notification_reminders set default '[{"daysBefore":0,"hour":8,"minute":0}]'::jsonb,
+      alter column notification_reminders set not null;
+  end if;
+end $$;
 
 alter table public.user_settings enable row level security;
 
@@ -173,5 +206,16 @@ begin
     alter table public.user_settings
       add constraint user_settings_reminder_minute_chk
       check (reminder_minute between 0 and 59);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'user_settings_notification_reminders_chk'
+  ) then
+    alter table public.user_settings
+      add constraint user_settings_notification_reminders_chk
+      check (
+        jsonb_typeof(notification_reminders) = 'array'
+        and jsonb_array_length(notification_reminders) <= 3
+      );
   end if;
 end $$;

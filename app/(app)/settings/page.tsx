@@ -11,6 +11,7 @@ import {
   Send,
   Settings,
   Smartphone,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -19,18 +20,26 @@ import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { LENS_TYPE_OPTIONS, SETTINGS_LIMITS } from "@/constants/lens";
+import {
+  DEFAULT_NOTIFICATION_REMINDERS,
+  LENS_TYPE_OPTIONS,
+  MAX_NOTIFICATION_REMINDERS,
+  SETTINGS_LIMITS,
+  normalizeNotificationReminders,
+} from "@/constants/lens";
 import {
   ensureNotificationPermissions,
   getNotificationSupportState,
   showTestNotification,
   type NotificationSupportState,
 } from "@/lib/notifications";
-import { formatReminderTime } from "@/lib/date-utils";
+import { formatNotificationReminder } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useLens } from "@/providers/lens-provider";
+import type { NotificationReminder } from "@/types/lens";
 
 type BeforeInstallPromptEvent = Event & {
   platforms: string[];
@@ -163,6 +172,62 @@ function Stepper({
   );
 }
 
+function reminderKey(reminder: NotificationReminder) {
+  return `${reminder.daysBefore}:${reminder.hour}:${reminder.minute}`;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function timeInputValue(reminder: NotificationReminder) {
+  return `${String(reminder.hour).padStart(2, "0")}:${String(reminder.minute).padStart(2, "0")}`;
+}
+
+function parseTimeInputValue(value: string) {
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+
+  if (
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    hour < SETTINGS_LIMITS.reminderHour.min ||
+    hour > SETTINGS_LIMITS.reminderHour.max ||
+    minute < SETTINGS_LIMITS.reminderMinute.min ||
+    minute > SETTINGS_LIMITS.reminderMinute.max
+  ) {
+    return null;
+  }
+
+  return { hour, minute };
+}
+
+function nextReminderCandidate(reminders: NotificationReminder[]) {
+  const existing = new Set(reminders.map(reminderKey));
+  const base = reminders[reminders.length - 1] ?? DEFAULT_NOTIFICATION_REMINDERS[0];
+  const dayCandidates = [base.daysBefore + 1, 0, 1, 2, 3];
+
+  for (const daysBefore of dayCandidates) {
+    if (
+      daysBefore < SETTINGS_LIMITS.reminderDaysBefore.min ||
+      daysBefore > SETTINGS_LIMITS.reminderDaysBefore.max
+    ) {
+      continue;
+    }
+
+    const candidate = { ...base, daysBefore };
+    if (!existing.has(reminderKey(candidate))) return candidate;
+  }
+
+  for (let hour = SETTINGS_LIMITS.reminderHour.min; hour <= SETTINGS_LIMITS.reminderHour.max; hour += 1) {
+    const candidate = { daysBefore: base.daysBefore, hour, minute: base.minute };
+    if (!existing.has(reminderKey(candidate))) return candidate;
+  }
+
+  return DEFAULT_NOTIFICATION_REMINDERS[0];
+}
+
 export default function SettingsPage() {
   const { settings, updateSetting, signOut, isBusy } = useLens();
   const pwaInstall = usePwaInstallPrompt();
@@ -207,6 +272,25 @@ export default function SettingsPage() {
     } finally {
       setIsTestingNotification(false);
     }
+  };
+
+  const saveNotificationReminders = (reminders: NotificationReminder[]) =>
+    updateSetting("notificationReminders", normalizeNotificationReminders(reminders, []));
+
+  const updateReminder = (index: number, changes: Partial<NotificationReminder>) => {
+    const nextReminders = settings.notificationReminders.map((reminder, reminderIndex) =>
+      reminderIndex === index ? { ...reminder, ...changes } : reminder,
+    );
+    void saveNotificationReminders(nextReminders);
+  };
+
+  const addReminder = () => {
+    if (settings.notificationReminders.length >= MAX_NOTIFICATION_REMINDERS) return;
+    void saveNotificationReminders([...settings.notificationReminders, nextReminderCandidate(settings.notificationReminders)]);
+  };
+
+  const removeReminder = (index: number) => {
+    void saveNotificationReminders(settings.notificationReminders.filter((_, reminderIndex) => reminderIndex !== index));
   };
 
   return (
@@ -285,37 +369,120 @@ export default function SettingsPage() {
 
               {settings.notificationsEnabled && notificationState === "granted" && (
                 <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-[auto_auto_auto] sm:items-end">
-                    <Stepper
-                      label="Hour"
-                      value={String(settings.reminderHour).padStart(2, "0")}
-                      disabled={isBusy}
-                      onDecrease={() => updateSetting("reminderHour", (settings.reminderHour + 23) % 24)}
-                      onIncrease={() => updateSetting("reminderHour", (settings.reminderHour + 1) % 24)}
-                    />
-                    <span className="hidden pb-2 text-2xl font-black text-muted sm:block">:</span>
-                    <Stepper
-                      label="Minute"
-                      value={String(settings.reminderMinute).padStart(2, "0")}
-                      disabled={isBusy}
-                      onDecrease={() =>
-                        updateSetting(
-                          "reminderMinute",
-                          (settings.reminderMinute + 60 - SETTINGS_LIMITS.reminderMinute.step) % 60,
-                        )
-                      }
-                      onIncrease={() =>
-                        updateSetting(
-                          "reminderMinute",
-                          (settings.reminderMinute + SETTINGS_LIMITS.reminderMinute.step) % 60,
-                        )
-                      }
-                    />
+                  <div className="space-y-3">
+                    {settings.notificationReminders.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-line bg-surface px-4 py-3">
+                        <p className="text-sm font-bold text-muted">No notification rows saved.</p>
+                      </div>
+                    )}
+
+                    {settings.notificationReminders.map((reminder, index) => (
+                      <div
+                        key={`${index}-${reminderKey(reminder)}`}
+                        className="grid gap-3 rounded-lg border border-line bg-surface p-3 sm:grid-cols-[minmax(8rem,1fr)_6.25rem_6rem_auto_8rem_2.75rem] sm:items-end"
+                      >
+                        <div className="space-y-2">
+                          <Label htmlFor={`reminder-type-${index}`}>Alert</Label>
+                          <select
+                            id={`reminder-type-${index}`}
+                            defaultValue="notification"
+                            disabled={isBusy}
+                            aria-label="Reminder type"
+                            className="block h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-bold text-ink outline-none transition-colors focus:border-blueDeep focus:ring-2 focus:ring-blueDeep/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="notification">Notification</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`reminder-days-${index}`}>Before</Label>
+                          <Input
+                            id={`reminder-days-${index}`}
+                            type="number"
+                            min={SETTINGS_LIMITS.reminderDaysBefore.min}
+                            max={SETTINGS_LIMITS.reminderDaysBefore.max}
+                            step={1}
+                            inputMode="numeric"
+                            value={reminder.daysBefore}
+                            onChange={(event) => {
+                              const daysBefore = Number(event.currentTarget.value);
+                              if (!Number.isFinite(daysBefore)) return;
+
+                              updateReminder(index, {
+                                daysBefore: clamp(
+                                  Math.round(daysBefore),
+                                  SETTINGS_LIMITS.reminderDaysBefore.min,
+                                  SETTINGS_LIMITS.reminderDaysBefore.max,
+                                ),
+                              });
+                            }}
+                            disabled={isBusy}
+                            className="tabular-nums"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`reminder-unit-${index}`}>Unit</Label>
+                          <select
+                            id={`reminder-unit-${index}`}
+                            defaultValue="days"
+                            disabled={isBusy}
+                            aria-label="Reminder unit"
+                            className="block h-11 w-full min-w-0 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-bold text-ink outline-none transition-colors focus:border-blueDeep focus:ring-2 focus:ring-blueDeep/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="days">days</option>
+                          </select>
+                        </div>
+
+                        <p className="pb-3 text-sm font-black text-muted sm:whitespace-nowrap sm:text-center">before at</p>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`reminder-time-${index}`}>Time</Label>
+                          <Input
+                            id={`reminder-time-${index}`}
+                            type="time"
+                            step={SETTINGS_LIMITS.reminderMinute.step * 60}
+                            value={timeInputValue(reminder)}
+                            onChange={(event) => {
+                              const time = parseTimeInputValue(event.currentTarget.value);
+                              if (time) updateReminder(index, time);
+                            }}
+                            disabled={isBusy}
+                            className="tabular-nums"
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeReminder(index)}
+                          disabled={isBusy}
+                          aria-label="Remove reminder"
+                          className="h-11 w-11 text-muted hover:text-ink"
+                        >
+                          <X size={18} />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
 
                   <p className="text-sm font-bold text-muted">
-                    Reminders at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}
+                    {settings.notificationReminders.length > 0
+                      ? `Saved reminders: ${settings.notificationReminders.map(formatNotificationReminder).join(", ")}`
+                      : "Saved reminders: none"}
                   </p>
+
+                  <Button
+                    type="button"
+                    variant="soft"
+                    onClick={addReminder}
+                    disabled={isBusy || settings.notificationReminders.length >= MAX_NOTIFICATION_REMINDERS}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus size={16} />
+                    Add notification
+                  </Button>
                 </div>
               )}
 
