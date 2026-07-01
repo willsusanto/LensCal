@@ -15,6 +15,19 @@ export const metadata: Metadata = {
   title: 'LensCal',
   description: 'Contact lens replacement tracker',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black',
+    title: 'LensCal',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,8 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={jakarta.variable}>
       <head>
         <meta name="theme-color" content={palette.ink} />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
       </head>
       <body className="antialiased">{children}</body>
     </html>

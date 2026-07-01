@@ -174,7 +174,7 @@ export function LensProvider({ children }: PropsWithChildren) {
       await runAction(async () => {
         const current = eyes[eye].activeLens;
         if (current) {
-          await cancelLensNotification(null);
+          await cancelLensNotification(current.id);
           await discardActiveLens(supabase, current.id);
           await insertEvent(supabase, {
             userId: user.id,
@@ -200,7 +200,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           notes,
         });
 
-        // Notifications deferred — scheduleReplacementNotification is a no-op stub.
         await scheduleReplacementNotification(newLens, settings);
       });
     },
@@ -214,7 +213,7 @@ export function LensProvider({ children }: PropsWithChildren) {
         const current = eyes[eye].activeLens;
         if (!current) return;
 
-        await cancelLensNotification(null);
+        await cancelLensNotification(current.id);
         await discardActiveLens(supabase, current.id);
         await insertEvent(supabase, {
           userId: user.id,
@@ -312,6 +311,22 @@ export function LensProvider({ children }: PropsWithChildren) {
       signOut,
     ],
   );
+
+  useEffect(() => {
+    if (!settings.notificationsEnabled) return;
+
+    const scheduledLensIds = activeLenses.map((lens) => lens.id);
+
+    for (const lens of activeLenses) {
+      void scheduleReplacementNotification(lens, settings);
+    }
+
+    return () => {
+      for (const lensId of scheduledLensIds) {
+        void cancelLensNotification(lensId);
+      }
+    };
+  }, [activeLenses, settings]);
 
   return <LensContext.Provider value={value}>{children}</LensContext.Provider>;
 }
