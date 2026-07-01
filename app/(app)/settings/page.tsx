@@ -1,6 +1,19 @@
 "use client";
 
-import { Bell, Minus, Plus, RefreshCw, Settings } from "lucide-react";
+import {
+  Bell,
+  BellRing,
+  CheckCircle2,
+  Download,
+  Minus,
+  Plus,
+  RefreshCw,
+  Send,
+  Settings,
+  Smartphone,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -8,6 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  ensureNotificationPermissions,
+  getNotificationSupportState,
+  showTestNotification,
+  type NotificationSupportState,
+} from "@/lib/notifications";
 import { formatReminderTime } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useLens } from "@/providers/lens-provider";
@@ -19,7 +38,76 @@ const lensOptions: { label: string; value: LensType }[] = [
   { label: "Monthly", value: "monthly" },
 ];
 
-function SectionIcon({ icon: Icon }: { icon: typeof Bell }) {
+type BeforeInstallPromptEvent = Event & {
+  platforms: string[];
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  prompt: () => Promise<void>;
+};
+
+function isStandaloneDisplay() {
+  if (typeof window === "undefined") return false;
+
+  const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
+  return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
+}
+
+function usePwaInstallPrompt() {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(() => isStandaloneDisplay());
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+
+    const handleInstalled = () => {
+      setInstallPrompt(null);
+      setIsInstalled(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const install = async () => {
+    if (!installPrompt) return;
+
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    setInstallPrompt(null);
+
+    if (choice.outcome === "accepted") {
+      setIsInstalled(true);
+    }
+  };
+
+  return {
+    canInstall: Boolean(installPrompt),
+    install,
+    isInstalled,
+  };
+}
+
+function permissionLabel(state: NotificationSupportState) {
+  switch (state) {
+    case "granted":
+      return "Allowed";
+    case "denied":
+      return "Blocked";
+    case "default":
+      return "Not set";
+    case "unsupported":
+      return "Unsupported";
+  }
+}
+
+function SectionIcon({ icon: Icon }: { icon: LucideIcon }) {
   return (
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surfaceBlue text-blueDeep">
       <Icon size={20} />
@@ -83,6 +171,49 @@ function Stepper({
 
 export default function SettingsPage() {
   const { settings, updateSetting, signOut, isBusy } = useLens();
+  const pwaInstall = usePwaInstallPrompt();
+  const [notificationState, setNotificationState] = useState<NotificationSupportState>(() =>
+    getNotificationSupportState(),
+  );
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
+  const [isTestingNotification, setIsTestingNotification] = useState(false);
+
+  const handleReminderToggle = async (checked: boolean) => {
+    setNotificationMessage(null);
+
+    if (!checked) {
+      await updateSetting("notificationsEnabled", false);
+      return;
+    }
+
+    const isAllowed = await ensureNotificationPermissions();
+    const nextState = getNotificationSupportState();
+    setNotificationState(nextState);
+
+    await updateSetting("notificationsEnabled", isAllowed);
+    setNotificationMessage(
+      isAllowed
+        ? "Browser notifications are enabled for this device."
+        : "Notifications were not allowed in this browser.",
+    );
+  };
+
+  const handleTestNotification = async () => {
+    setIsTestingNotification(true);
+    setNotificationMessage(null);
+
+    try {
+      const didShow = await showTestNotification();
+      setNotificationState(getNotificationSupportState());
+      setNotificationMessage(
+        didShow
+          ? "Test notification sent."
+          : "Test notification could not be shown. Check browser permissions.",
+      );
+    } finally {
+      setIsTestingNotification(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -140,19 +271,19 @@ export default function SettingsPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-black text-ink">Replacement reminders</p>
                   <p className="mt-1 text-xs font-bold text-muted">
-                    {settings.notificationsEnabled ? "Enabled" : "Disabled"}
+                    Browser permission: {permissionLabel(notificationState)}
                   </p>
                 </div>
                 <Switch
                   className="shrink-0"
-                  checked={settings.notificationsEnabled}
-                  onCheckedChange={(checked) => updateSetting("notificationsEnabled", checked)}
-                  disabled={isBusy}
+                  checked={settings.notificationsEnabled && notificationState === "granted"}
+                  onCheckedChange={handleReminderToggle}
+                  disabled={isBusy || notificationState === "unsupported"}
                   aria-label="Toggle replacement reminders"
                 />
               </div>
 
-              {settings.notificationsEnabled && (
+              {settings.notificationsEnabled && notificationState === "granted" && (
                 <div className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-[auto_auto_auto] sm:items-end">
                     <Stepper
@@ -175,38 +306,94 @@ export default function SettingsPage() {
                   <p className="text-sm font-bold text-muted">
                     Reminders at {formatReminderTime(settings.reminderHour, settings.reminderMinute)}
                   </p>
+                </div>
+              )}
 
-                  <div className="rounded-lg border border-line bg-warningBg px-4 py-3">
-                    <p className="text-sm font-bold text-warning">
-                      Web Push notifications are not implemented yet. This setting will take effect in a future update.
-                    </p>
-                  </div>
+              <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-ink">Notification test</p>
+                  <p className="mt-1 text-xs font-bold text-muted">Sends one notification to this browser.</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="soft"
+                  onClick={handleTestNotification}
+                  disabled={isBusy || isTestingNotification || notificationState === "unsupported"}
+                  className="w-full sm:w-auto"
+                >
+                  <Send size={16} />
+                  Send test
+                </Button>
+              </div>
+
+              {notificationMessage && (
+                <div className="rounded-lg border border-line bg-surfaceSoft px-4 py-3">
+                  <p className="text-sm font-bold text-muted">{notificationMessage}</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        <Card className="h-fit">
-          <CardHeader className="flex-row items-center gap-3">
-            <SectionIcon icon={Settings} />
-            <div>
-              <CardTitle>Account</CardTitle>
-              <p className="mt-1 text-sm font-bold text-muted">Session and access controls.</p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={signOut}
-              disabled={isBusy}
-              className="w-full"
-            >
-              Sign out
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="h-fit">
+            <CardHeader className="flex-row items-center gap-3">
+              <SectionIcon icon={Smartphone} />
+              <div>
+                <CardTitle>Install app</CardTitle>
+                <p className="mt-1 text-sm font-bold text-muted">Run LensCal from your device home screen.</p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 rounded-lg border border-line bg-surfaceSoft p-4">
+                {pwaInstall.isInstalled ? (
+                  <CheckCircle2 className="shrink-0 text-blueDeep" size={20} />
+                ) : (
+                  <BellRing className="shrink-0 text-blueDeep" size={20} />
+                )}
+                <p className="text-sm font-bold text-muted">
+                  {pwaInstall.isInstalled
+                    ? "LensCal is installed on this device."
+                    : pwaInstall.canInstall
+                      ? "This browser can install LensCal."
+                      : "Use the browser install or add-to-home-screen option when available."}
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="default"
+                onClick={pwaInstall.install}
+                disabled={isBusy || pwaInstall.isInstalled || !pwaInstall.canInstall}
+                className="w-full"
+              >
+                <Download size={16} />
+                {pwaInstall.isInstalled ? "Installed" : "Install LensCal"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="h-fit">
+            <CardHeader className="flex-row items-center gap-3">
+              <SectionIcon icon={Settings} />
+              <div>
+                <CardTitle>Account</CardTitle>
+                <p className="mt-1 text-sm font-bold text-muted">Session and access controls.</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={signOut}
+                disabled={isBusy}
+                className="w-full"
+              >
+                Sign out
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
