@@ -7,12 +7,6 @@ module.exports = [
   ...nextVitals,
   ...nextTypescript,
   {
-    files: ["providers/lens-provider.tsx"],
-    rules: {
-      "react-hooks/set-state-in-effect": "off",
-    },
-  },
-  {
     ignores: [".next/**", "public/sw.js", "public/swe-worker-*.js", "public/workbox-*.js"],
   },
 ];

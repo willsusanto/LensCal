@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LENS_TYPE_OPTIONS, MAX_NOTE_LENGTH } from "@/constants/lens";
 import {
   displayLensType,
   expirationFor,
@@ -22,12 +23,6 @@ import {
 } from "@/lib/date-utils";
 import { useLens } from "@/providers/lens-provider";
 import type { Eye, LensType } from "@/types/lens";
-
-const lensOptions: { label: string; value: LensType }[] = [
-  { label: "Daily", value: "daily" },
-  { label: "Weekly", value: "weekly" },
-  { label: "Monthly", value: "monthly" },
-];
 
 function toDateInputValue(date: Date) {
   const y = date.getFullYear();
@@ -83,7 +78,12 @@ function ReplaceLensForm() {
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <Label>Lens type</Label>
-              <SegmentedControl options={lensOptions} value={lensType} onChange={setLensType} disabled={isBusy} />
+              <SegmentedControl
+                options={LENS_TYPE_OPTIONS}
+                value={lensType}
+                onChange={(value) => setLensType(value as LensType)}
+                disabled={isBusy}
+              />
             </div>
 
             <div className="space-y-2">
@@ -105,6 +105,7 @@ function ReplaceLensForm() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 disabled={isBusy}
+                maxLength={MAX_NOTE_LENGTH}
                 rows={4}
                 placeholder="Any notes about this lens..."
               />

@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { DEFAULT_SETTINGS } from '@/constants/lens';
 import {
   discardActiveLens,
   getActiveLenses,
@@ -38,17 +39,7 @@ type LensContextValue = {
   discardLens: (eye: Eye) => Promise<void>;
   markUncomfortable: (eye: Eye, notes?: string | null) => Promise<void>;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-};
-
-const defaultSettings: AppSettings = {
-  defaultLensType: 'monthly',
-  monthlyReplacementDays: 28,
-  notificationsEnabled: true,
-  reminderHour: 8,
-  reminderMinute: 0,
 };
 
 const emptyEye = (eye: Eye): EyeState => ({
@@ -66,7 +57,7 @@ export function LensProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeLenses, setActiveLenses] = useState<LensUsage[]>([]);
   const [history, setHistory] = useState<LensUsage[]>([]);
   const [events, setEvents] = useState<LensEvent[]>([]);
@@ -82,7 +73,7 @@ export function LensProvider({ children }: PropsWithChildren) {
       setIsReady(false);
 
       if (!nextUser) {
-        setSettings(defaultSettings);
+        setSettings(DEFAULT_SETTINGS);
         setActiveLenses([]);
         setHistory([]);
         setEvents([]);
@@ -110,9 +101,9 @@ export function LensProvider({ children }: PropsWithChildren) {
 
     const [nextSettings, nextActiveLenses, nextHistory, nextEvents] = await Promise.all([
       getSettings(supabase, user.id),
-      getActiveLenses(supabase),
-      getLensHistory(supabase),
-      getEvents(supabase),
+      getActiveLenses(supabase, user.id),
+      getLensHistory(supabase, user.id),
+      getEvents(supabase, user.id),
     ]);
 
     setSettings(nextSettings);
@@ -127,9 +118,12 @@ export function LensProvider({ children }: PropsWithChildren) {
 
     let isMounted = true;
 
-    refresh().finally(() => {
+    async function loadUserData() {
+      await refresh();
       if (isMounted) setIsReady(true);
-    });
+    }
+
+    void loadUserData();
 
     return () => {
       isMounted = false;
@@ -175,7 +169,7 @@ export function LensProvider({ children }: PropsWithChildren) {
         const current = eyes[eye].activeLens;
         if (current) {
           await cancelLensNotification(current.id);
-          await discardActiveLens(supabase, current.id);
+          await discardActiveLens(supabase, user.id, current.id);
           await insertEvent(supabase, {
             userId: user.id,
             lensUsageId: current.id,
@@ -214,7 +208,7 @@ export function LensProvider({ children }: PropsWithChildren) {
         if (!current) return;
 
         await cancelLensNotification(current.id);
-        await discardActiveLens(supabase, current.id);
+        await discardActiveLens(supabase, user.id, current.id);
         await insertEvent(supabase, {
           userId: user.id,
           lensUsageId: current.id,
@@ -253,24 +247,6 @@ export function LensProvider({ children }: PropsWithChildren) {
     [runAction, supabase, user],
   );
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      router.push('/');
-      router.refresh();
-    },
-    [router, supabase],
-  );
-
-  const signUp = useCallback(
-    async (email: string, password: string) => {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-    },
-    [supabase],
-  );
-
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -290,8 +266,6 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateSetting,
-      signIn,
-      signUp,
       signOut,
     }),
     [
@@ -306,8 +280,6 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateSetting,
-      signIn,
-      signUp,
       signOut,
     ],
   );

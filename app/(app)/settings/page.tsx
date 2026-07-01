@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { LENS_TYPE_OPTIONS, SETTINGS_LIMITS } from "@/constants/lens";
 import {
   ensureNotificationPermissions,
   getNotificationSupportState,
@@ -30,13 +31,6 @@ import {
 import { formatReminderTime } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { useLens } from "@/providers/lens-provider";
-import type { LensType } from "@/types/lens";
-
-const lensOptions: { label: string; value: LensType }[] = [
-  { label: "Daily", value: "daily" },
-  { label: "Weekly", value: "weekly" },
-  { label: "Monthly", value: "monthly" },
-];
 
 type BeforeInstallPromptEvent = Event & {
   platforms: string[];
@@ -235,7 +229,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <SegmentedControl
-                options={lensOptions}
+                options={LENS_TYPE_OPTIONS}
                 value={settings.defaultLensType}
                 onChange={(value) => updateSetting("defaultLensType", value)}
                 disabled={isBusy}
@@ -248,10 +242,16 @@ export default function SettingsPage() {
                   disabled={isBusy}
                   wideValue
                   onDecrease={() =>
-                    updateSetting("monthlyReplacementDays", Math.max(1, settings.monthlyReplacementDays - 1))
+                    updateSetting(
+                      "monthlyReplacementDays",
+                      Math.max(SETTINGS_LIMITS.monthlyReplacementDays.min, settings.monthlyReplacementDays - 1),
+                    )
                   }
                   onIncrease={() =>
-                    updateSetting("monthlyReplacementDays", Math.min(90, settings.monthlyReplacementDays + 1))
+                    updateSetting(
+                      "monthlyReplacementDays",
+                      Math.min(SETTINGS_LIMITS.monthlyReplacementDays.max, settings.monthlyReplacementDays + 1),
+                    )
                   }
                 />
               )}
@@ -298,8 +298,18 @@ export default function SettingsPage() {
                       label="Minute"
                       value={String(settings.reminderMinute).padStart(2, "0")}
                       disabled={isBusy}
-                      onDecrease={() => updateSetting("reminderMinute", (settings.reminderMinute + 55) % 60)}
-                      onIncrease={() => updateSetting("reminderMinute", (settings.reminderMinute + 5) % 60)}
+                      onDecrease={() =>
+                        updateSetting(
+                          "reminderMinute",
+                          (settings.reminderMinute + 60 - SETTINGS_LIMITS.reminderMinute.step) % 60,
+                        )
+                      }
+                      onIncrease={() =>
+                        updateSetting(
+                          "reminderMinute",
+                          (settings.reminderMinute + SETTINGS_LIMITS.reminderMinute.step) % 60,
+                        )
+                      }
                     />
                   </div>
 
