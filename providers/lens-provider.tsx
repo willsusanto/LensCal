@@ -22,13 +22,15 @@ import {
   getSettings,
   insertEvent,
   openLens,
+  revokePushSubscription as revokePushSubscriptionInDb,
   updateLensUsageDates,
   updateSetting as updateSettingInDb,
+  upsertPushSubscription,
   validateOpenLensInput,
 } from '@/lib/data';
 import { cancelLensNotification, scheduleReplacementNotification } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/client';
-import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage } from '@/types/lens';
+import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage, PushSubscriptionInput } from '@/types/lens';
 
 type LensContextValue = {
   isReady: boolean;
@@ -46,6 +48,8 @@ type LensContextValue = {
     openedAt: Date,
     terminalEvent?: { id: string; eventAt: Date } | null,
   ) => Promise<void>;
+  savePushSubscription: (subscription: PushSubscriptionInput) => Promise<void>;
+  revokePushSubscription: (endpoint: string | null) => Promise<void>;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -292,6 +296,26 @@ export function LensProvider({ children }: PropsWithChildren) {
     [runAction, supabase, user],
   );
 
+  const savePushSubscription = useCallback(
+    async (subscription: PushSubscriptionInput) => {
+      if (!user) return;
+      await runAction(async () => {
+        await upsertPushSubscription(supabase, user.id, subscription);
+      });
+    },
+    [runAction, supabase, user],
+  );
+
+  const revokePushSubscription = useCallback(
+    async (endpoint: string | null) => {
+      if (!user || !endpoint) return;
+      await runAction(async () => {
+        await revokePushSubscriptionInDb(supabase, user.id, endpoint);
+      });
+    },
+    [runAction, supabase, user],
+  );
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -311,6 +335,8 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateUsageDates,
+      savePushSubscription,
+      revokePushSubscription,
       updateSetting,
       signOut,
     }),
@@ -326,6 +352,8 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateUsageDates,
+      savePushSubscription,
+      revokePushSubscription,
       updateSetting,
       signOut,
     ],

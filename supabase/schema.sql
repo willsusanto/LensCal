@@ -158,6 +158,77 @@ create policy "Users manage own settings"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+create table if not exists public.push_subscriptions (
+  id text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_success_at timestamptz,
+  last_failure_at timestamptz,
+  failure_count integer not null default 0,
+  revoked_at timestamptz
+);
+
+create index if not exists push_subscriptions_user_active_idx
+  on public.push_subscriptions (user_id, revoked_at);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "Users can read their own push subscriptions" on public.push_subscriptions;
+create policy "Users can read their own push subscriptions"
+  on public.push_subscriptions
+  for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert their own push subscriptions" on public.push_subscriptions;
+create policy "Users can insert their own push subscriptions"
+  on public.push_subscriptions
+  for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own push subscriptions" on public.push_subscriptions;
+create policy "Users can update their own push subscriptions"
+  on public.push_subscriptions
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own push subscriptions" on public.push_subscriptions;
+create policy "Users can delete their own push subscriptions"
+  on public.push_subscriptions
+  for delete
+  using (auth.uid() = user_id);
+
+create table if not exists public.push_reminder_deliveries (
+  id text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  lens_usage_id text not null references public.lens_usages(id) on delete cascade,
+  reminder_key text not null,
+  scheduled_for timestamptz not null,
+  sent_at timestamptz,
+  status text not null check (status in ('sent', 'failed')),
+  error text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists push_reminder_deliveries_unique_idx
+  on public.push_reminder_deliveries (user_id, lens_usage_id, reminder_key, scheduled_for);
+
+create index if not exists push_reminder_deliveries_user_created_idx
+  on public.push_reminder_deliveries (user_id, created_at desc);
+
+alter table public.push_reminder_deliveries enable row level security;
+
+drop policy if exists "Users can read their own push reminder deliveries" on public.push_reminder_deliveries;
+create policy "Users can read their own push reminder deliveries"
+  on public.push_reminder_deliveries
+  for select
+  using (auth.uid() = user_id);
+
 do $$
 begin
   if not exists (

@@ -7,6 +7,12 @@ module.exports = [
   ...nextVitals,
   ...nextTypescript,
   {
-    ignores: [".next/**", "public/sw.js", "public/swe-worker-*.js", "public/workbox-*.js"],
+    ignores: [
+      ".next/**",
+      "public/sw.js",
+      "public/swe-worker-*.js",
+      "public/workbox-*.js",
+      "public/worker-*.js",
+    ],
   },
 ];

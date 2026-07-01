@@ -10,7 +10,15 @@ import {
   validateNotificationReminders,
 } from '@/constants/lens';
 import { expirationFor } from '@/lib/date-utils';
-import type { AppSettings, Eye, LensEvent, LensEventType, LensType, LensUsage } from '@/types/lens';
+import type {
+  AppSettings,
+  Eye,
+  LensEvent,
+  LensEventType,
+  LensType,
+  LensUsage,
+  PushSubscriptionInput,
+} from '@/types/lens';
 
 function createId(prefix: string): string {
   const cryptoApi = globalThis.crypto;
@@ -375,5 +383,68 @@ export async function updateSetting(
       { user_id: userId, [settingsColumnMap[key]]: validatedValue, updated_at: nowIso() },
       { onConflict: 'user_id' },
     );
+  if (error) throw error;
+}
+
+// --- Push subscriptions ---
+
+function validatePushSubscriptionInput(input: PushSubscriptionInput) {
+  if (!input.endpoint || typeof input.endpoint !== 'string') {
+    throw new RangeError('Push subscription endpoint is required.');
+  }
+
+  if (!input.p256dh || typeof input.p256dh !== 'string') {
+    throw new RangeError('Push subscription public key is required.');
+  }
+
+  if (!input.auth || typeof input.auth !== 'string') {
+    throw new RangeError('Push subscription auth secret is required.');
+  }
+
+  return {
+    endpoint: input.endpoint,
+    p256dh: input.p256dh,
+    auth: input.auth,
+    userAgent: input.userAgent?.slice(0, 500) ?? null,
+  };
+}
+
+export async function upsertPushSubscription(
+  supabase: SupabaseClient,
+  userId: string,
+  input: PushSubscriptionInput,
+): Promise<void> {
+  const subscription = validatePushSubscriptionInput(input);
+
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .upsert(
+      {
+        id: createId('ps'),
+        user_id: userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+        user_agent: subscription.userAgent,
+        updated_at: nowIso(),
+        revoked_at: null,
+      },
+      { onConflict: 'endpoint', ignoreDuplicates: false },
+    );
+  if (error) throw error;
+}
+
+export async function revokePushSubscription(
+  supabase: SupabaseClient,
+  userId: string,
+  endpoint: string,
+): Promise<void> {
+  if (!endpoint) return;
+
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .update({ revoked_at: nowIso(), updated_at: nowIso() })
+    .eq('user_id', userId)
+    .eq('endpoint', endpoint);
   if (error) throw error;
 }

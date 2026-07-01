@@ -34,6 +34,8 @@ import {
   ensureNotificationPermissions,
   getNotificationSupportState,
   showTestNotification,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
   type NotificationSupportState,
 } from "@/lib/notifications";
 import { formatNotificationReminder } from "@/lib/date-utils";
@@ -229,7 +231,7 @@ function nextReminderCandidate(reminders: NotificationReminder[]) {
 }
 
 export default function SettingsPage() {
-  const { settings, updateSetting, signOut, isBusy } = useLens();
+  const { settings, updateSetting, savePushSubscription, revokePushSubscription, signOut, isBusy } = useLens();
   const pwaInstall = usePwaInstallPrompt();
   const [notificationState, setNotificationState] = useState<NotificationSupportState>(() =>
     getNotificationSupportState(),
@@ -242,6 +244,8 @@ export default function SettingsPage() {
 
     if (!checked) {
       await updateSetting("notificationsEnabled", false);
+      const endpoint = await unsubscribeFromPushNotifications();
+      await revokePushSubscription(endpoint);
       return;
     }
 
@@ -249,11 +253,25 @@ export default function SettingsPage() {
     const nextState = getNotificationSupportState();
     setNotificationState(nextState);
 
-    await updateSetting("notificationsEnabled", isAllowed);
+    if (!isAllowed) {
+      await updateSetting("notificationsEnabled", false);
+      setNotificationMessage("Notifications were not allowed in this browser.");
+      return;
+    }
+
+    const subscription = await subscribeToPushNotifications();
+    if (!subscription) {
+      await updateSetting("notificationsEnabled", false);
+      setNotificationMessage(
+        "Background reminders could not be enabled. Check the VAPID public key and service worker setup.",
+      );
+      return;
+    }
+
+    await savePushSubscription(subscription);
+    await updateSetting("notificationsEnabled", true);
     setNotificationMessage(
-      isAllowed
-        ? "Browser notifications are enabled for this device."
-        : "Notifications were not allowed in this browser.",
+      "Background reminders are enabled for this device.",
     );
   };
 

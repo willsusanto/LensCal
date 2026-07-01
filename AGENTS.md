@@ -4,7 +4,7 @@
 
 LensCal is a contact lens replacement tracker. Users log when they open a new lens pack for each eye, and the app tracks replacement dates by lens type: daily, weekly, or monthly. Login via Supabase Auth is required. There is no guest mode, SQLite store, offline-first sync, or React Native/Expo runtime.
 
-The app is now a Next.js PWA. It has install metadata, Workbox service-worker generation through `@ducanh2912/next-pwa`, browser notification permission/test controls, and in-session reminder scheduling. True background Web Push with a server-side push sender is not implemented yet.
+The app is now a Next.js PWA. It has install metadata, Workbox service-worker generation through `@ducanh2912/next-pwa`, browser notification permission/test controls, in-session reminder scheduling, and background Web Push reminders. A Tencent Cloud VPS cron calls a protected Next.js API route, which uses Supabase as the source of truth and sends Push notifications with VAPID keys.
 
 ---
 
@@ -20,6 +20,7 @@ The app is now a Next.js PWA. It has install metadata, Workbox service-worker ge
 | Auth + DB | `@supabase/supabase-js` `^2.108.2` + `@supabase/ssr` `^0.6.1` |
 | Icons | `lucide-react` |
 | PWA | `@ducanh2912/next-pwa` with generated Workbox files ignored in git |
+| Web Push | `web-push` with VAPID keys and a protected cron route |
 | State | React Context only: `LensProvider` |
 
 ---
@@ -38,6 +39,7 @@ app/
     replace-lens/page.tsx Open/change a lens; eye comes from ?eye=left|right
   login/page.tsx          Email/password sign-in + sign-up
   auth/callback/route.ts  Supabase PKCE code exchange, safe redirect
+  api/push/send-due-reminders/route.ts Protected server-side Web Push sender
 
 components/
   bottom-nav.tsx
@@ -64,6 +66,7 @@ lib/
   navigation.ts           Safe same-origin redirect path helper
   notifications.ts        Browser notification permission/test/reminder helpers
   supabase/
+    admin.ts              Server-only Supabase service-role client
     client.ts             createBrowserClient() for Client Components
     server.ts             createServerClient() for Server Components/Route Handlers
     env.ts                Supabase env validation
@@ -81,6 +84,7 @@ public/
 proxy.ts                  Next.js 16 proxy: session refresh and auth redirects
 supabase/schema.sql       Postgres schema, constraints, indexes, RLS policies
 types/lens.ts             Domain types
+worker/index.js           Custom next-pwa worker code for push/click handling
 ```
 
 Generated PWA files such as `public/sw.js`, `public/workbox-*.js`, and `public/swe-worker-*.js` are build artifacts and must stay ignored.
@@ -104,6 +108,7 @@ LensEvent     = id, user_id, lens_usage_id, event_type, event_at,
 AppSettings   = defaultLensType, monthlyReplacementDays,
                 notificationsEnabled, notificationReminders
 NotificationReminder = daysBefore, hour, minute
+PushSubscriptionInput = endpoint, p256dh, auth, userAgent?
 EyeState      = { eye, activeLens, latestUncomfortableEvent }
 ```
 
@@ -136,6 +141,9 @@ Context shape:
   replaceLens(eye, lensType, notes?, openedAt?): Promise<void>;
   discardLens(eye): Promise<void>;
   markUncomfortable(eye, notes?): Promise<void>;
+  updateUsageDates(usageId, openedAt, terminalEvent?): Promise<void>;
+  savePushSubscription(subscription): Promise<void>;
+  revokePushSubscription(endpoint): Promise<void>;
   updateSetting(key, value): Promise<void>;
   signOut(): Promise<void>;
 }
@@ -161,6 +169,8 @@ Every read/update is explicitly scoped by `user_id` in addition to RLS:
 | `insertEvent(supabase, input)` | Insert one `lens_events` row |
 | `getSettings(supabase, userId)` | Read or create default `user_settings` |
 | `updateSetting(supabase, userId, key, value)` | Validate and upsert one setting |
+| `upsertPushSubscription(supabase, userId, input)` | Save/refresh one browser Push subscription |
+| `revokePushSubscription(supabase, userId, endpoint)` | Mark one browser Push subscription revoked |
 
 RLS in `supabase/schema.sql` also verifies that inserted/updated events reference a lens usage owned by the same authenticated user.
 
@@ -178,7 +188,8 @@ RLS in `supabase/schema.sql` also verifies that inserted/updated events referenc
 Supabase client usage:
 
 - Client Components: `createClient()` from `lib/supabase/client.ts`
-- Server Components / Route Handlers: `createClient()` from `lib/supabase/server.ts`
+- Server Components / Route Handlers with user cookies: `createClient()` from `lib/supabase/server.ts`
+- Server-only cron/admin routes: `createAdminClient()` from `lib/supabase/admin.ts`
 - Environment validation: `lib/supabase/env.ts`
 
 ---
@@ -189,18 +200,26 @@ Supabase client usage:
 - `app/layout.tsx` declares manifest and icon metadata.
 - `@ducanh2912/next-pwa` writes generated service-worker files to `public/` during production builds.
 - Service worker is disabled in development.
+- `worker/index.js` is imported into the generated service worker and handles `push` plus `notificationclick` events.
 - Settings includes a PWA install card using the `beforeinstallprompt` event where browsers support it.
 - `lib/notifications.ts` handles:
   - browser support/permission state
   - requesting permission
+  - Push subscription and unsubscribe flow using `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
   - sending a test notification
   - scheduling up to 3 local in-session reminders for active lenses
   - cancelling timers and visible notifications by lens id
+- `app/api/push/send-due-reminders/route.ts` handles:
+  - `POST` requests with `Authorization: Bearer ${PUSH_CRON_SECRET}`
+  - active lens/reminder lookup through the Supabase service-role client
+  - Web Push sends through `web-push`
+  - delivery deduplication through `push_reminder_deliveries`
+  - stale subscription revocation on 404/410 Web Push failures
 
 Limitations:
 
-- This is browser-local notification support, not full Web Push.
-- Full background push when the app is closed requires push subscriptions, VAPID keys, a push sender, and likely an additional Supabase table.
+- Background reminders depend on HTTPS, browser Push support, configured VAPID keys, and the external VPS cron running regularly.
+- Reminder times are computed by the server route from `expires_at` plus saved reminder hour/minute. Keep the VPS timezone aligned with the app's expected user timezone unless a future per-user timezone setting is added.
 
 ---
 
@@ -233,8 +252,19 @@ Limitations:
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase publishable key |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | fallback | Supported for older Supabase projects |
+| `SUPABASE_SERVICE_ROLE_KEY` | server push | Service-role key for the protected reminder sender route |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | push | Browser-visible VAPID public key for Push subscriptions |
+| `VAPID_PRIVATE_KEY` | server push | Server-only VAPID private key used by `web-push` |
+| `VAPID_SUBJECT` | server push | VAPID subject, usually `mailto:...` or an HTTPS contact URL |
+| `PUSH_CRON_SECRET` | server push | Bearer token required by `/api/push/send-due-reminders` |
 
-Do not use `EXPO_PUBLIC_*` variables. Do not add service-role keys to client-visible env vars.
+Do not use `EXPO_PUBLIC_*` variables. Do not add service-role keys or VAPID private keys to client-visible env vars.
+
+Tencent Cloud VPS cron example:
+
+```bash
+*/5 * * * * curl -fsS -X POST https://YOUR_DOMAIN/api/push/send-due-reminders -H "Authorization: Bearer YOUR_PUSH_CRON_SECRET" >/dev/null
+```
 
 ---
 
