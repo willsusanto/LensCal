@@ -79,12 +79,12 @@ function ReplaceLensForm() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Card>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Lens details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="min-w-0 space-y-5">
             <div className="space-y-2">
               <Label>Lens type</Label>
               <SegmentedControl
@@ -104,7 +104,7 @@ function ReplaceLensForm() {
                 max={toDateInputValue(new Date())}
                 onChange={(e) => setStartDateStr(e.target.value)}
                 disabled={isBusy}
-                className="w-full min-w-0"
+                className="block w-full max-w-full min-w-0 text-center"
               />
             </div>
 

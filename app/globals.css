@@ -7,8 +7,17 @@
     --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
+  input[type="date"] {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value,
   input[type="date"]::-webkit-datetime-edit {
-    flex: 1;
+    min-inline-size: 0;
+    text-align: center;
   }
 
   *,
