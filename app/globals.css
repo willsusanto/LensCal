@@ -7,6 +7,10 @@
     --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
+  input[type="date"]::-webkit-datetime-edit {
+    flex: 1;
+  }
+
   *,
   *::before,
   *::after {

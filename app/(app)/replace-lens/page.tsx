@@ -1,10 +1,10 @@
 "use client";
 
+import { ArrowLeft, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { Suspense, useState } from "react";
-import { ArrowLeft, CalendarDays } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -15,11 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LENS_TYPE_OPTIONS, MAX_NOTE_LENGTH } from "@/constants/lens";
 import {
-  displayLensType,
-  expirationFor,
-  formatShortDate,
-  replacementDaysFor,
-  startOfLocalDay,
+    displayLensType,
+    expirationFor,
+    formatShortDate,
+    replacementDaysFor,
+    startOfLocalDay,
 } from "@/lib/date-utils";
 import { useLens } from "@/providers/lens-provider";
 import type { Eye, LensType } from "@/types/lens";
@@ -40,12 +40,21 @@ function ReplaceLensForm() {
   const activeLens = eyes[eye].activeLens;
 
   const [lensType, setLensType] = useState<LensType>(settings.defaultLensType);
-  const [startDateStr, setStartDateStr] = useState(toDateInputValue(new Date()));
+  const [startDateStr, setStartDateStr] = useState(
+    toDateInputValue(new Date()),
+  );
   const [notes, setNotes] = useState("");
 
   const startDate = startOfLocalDay(new Date(`${startDateStr}T00:00:00`));
-  const expiresAt = expirationFor(startDate, lensType, settings.monthlyReplacementDays);
-  const replacementDays = replacementDaysFor(lensType, settings.monthlyReplacementDays);
+  const expiresAt = expirationFor(
+    startDate,
+    lensType,
+    settings.monthlyReplacementDays,
+  );
+  const replacementDays = replacementDaysFor(
+    lensType,
+    settings.monthlyReplacementDays,
+  );
   const eyeLabel = eye === "left" ? "Left" : "Right";
 
   async function handleSave(e: FormEvent) {
@@ -86,7 +95,7 @@ function ReplaceLensForm() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="opened-on">Opened on</Label>
               <Input
                 id="opened-on"
@@ -95,6 +104,7 @@ function ReplaceLensForm() {
                 max={toDateInputValue(new Date())}
                 onChange={(e) => setStartDateStr(e.target.value)}
                 disabled={isBusy}
+                className="w-full min-w-0"
               />
             </div>
 
@@ -119,20 +129,25 @@ function ReplaceLensForm() {
               <CalendarDays size={19} />
               <p className="text-xs font-black uppercase">Expiry preview</p>
             </div>
-            <CardTitle className="text-3xl">{formatShortDate(expiresAt)}</CardTitle>
+            <CardTitle className="text-3xl">
+              {formatShortDate(expiresAt)}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
             <div className="rounded-lg bg-surfaceSoft p-4">
               <p className="text-sm font-black text-ink">
                 {replacementDays} day{replacementDays !== 1 ? "s" : ""}
               </p>
-              <p className="mt-1 text-sm font-bold text-muted">{displayLensType(lensType)} replacement cycle</p>
+              <p className="mt-1 text-sm font-bold text-muted">
+                {displayLensType(lensType)} replacement cycle
+              </p>
             </div>
 
             {activeLens && (
               <div className="rounded-lg border border-line bg-surface px-4 py-3">
                 <p className="text-sm font-bold text-muted">
-                  Saving will discard the current {eyeLabel.toLowerCase()} lens and open this one.
+                  Saving will discard the current {eyeLabel.toLowerCase()} lens
+                  and open this one.
                 </p>
               </div>
             )}
@@ -141,7 +156,12 @@ function ReplaceLensForm() {
       </div>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isBusy}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => router.back()}
+          disabled={isBusy}
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={isBusy}>
