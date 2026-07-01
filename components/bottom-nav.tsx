@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Calendar, Clock, Settings } from "lucide-react";
+import { useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,25 @@ function isActivePath(pathname: string, href: string) {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const prefetchRoutes = () => {
+      for (const { href } of navItems) {
+        if (href !== pathname) {
+          router.prefetch(href);
+        }
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(prefetchRoutes, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
+    }
+
+    const id = globalThis.setTimeout(prefetchRoutes, 250);
+    return () => globalThis.clearTimeout(id);
+  }, [pathname, router]);
 
   return (
     <>
@@ -40,6 +60,9 @@ export function BottomNav() {
               <Link
                 key={href}
                 href={href}
+                prefetch
+                onPointerEnter={() => router.prefetch(href)}
+                onFocus={() => router.prefetch(href)}
                 className={cn(
                   "flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-black transition-colors",
                   isActive
@@ -64,6 +87,9 @@ export function BottomNav() {
               <Link
                 key={href}
                 href={href}
+                prefetch
+                onPointerDown={() => router.prefetch(href)}
+                onFocus={() => router.prefetch(href)}
                 className={cn(
                   "flex min-h-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-black transition-colors",
                   isActive ? "bg-white text-ink" : "text-muted hover:text-white",

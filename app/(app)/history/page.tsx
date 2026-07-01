@@ -1,6 +1,7 @@
 "use client";
 
 import { Eye } from "lucide-react";
+import { useMemo } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,6 @@ function eventLabel(event: LensEvent) {
 }
 
 function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) {
-  const usageEvents = events.filter((event) => event.lens_usage_id === usage.id);
   const isLeft = usage.eye === "left";
 
   return (
@@ -66,8 +66,8 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
       )}
 
       <div className="mt-auto space-y-2">
-        {usageEvents.length > 0 ? (
-          usageEvents.map((event) => (
+        {events.length > 0 ? (
+          events.map((event) => (
             <div key={event.id} className="flex items-center justify-between gap-3 border-t border-line pt-2">
               <p className="text-sm font-black text-ink">{eventLabel(event)}</p>
               <p className="shrink-0 text-xs font-bold text-muted">{formatDateTime(event.event_at)}</p>
@@ -83,6 +83,20 @@ function UsageRow({ usage, events }: { usage: LensUsage; events: LensEvent[] }) 
 
 export default function HistoryPage() {
   const { history, events, isReady } = useLens();
+  const eventsByUsageId = useMemo(() => {
+    const next = new Map<string, LensEvent[]>();
+
+    for (const event of events) {
+      const usageEvents = next.get(event.lens_usage_id);
+      if (usageEvents) {
+        usageEvents.push(event);
+      } else {
+        next.set(event.lens_usage_id, [event]);
+      }
+    }
+
+    return next;
+  }, [events]);
 
   return (
     <div className="space-y-6">
@@ -106,7 +120,7 @@ export default function HistoryPage() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {history.map((usage) => (
-            <UsageRow key={usage.id} usage={usage} events={events} />
+            <UsageRow key={usage.id} usage={usage} events={eventsByUsageId.get(usage.id) ?? []} />
           ))}
         </div>
       )}
