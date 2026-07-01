@@ -1,4 +1,4 @@
-import withPWA from '@ducanh2912/next-pwa';
+import withPWA, { runtimeCaching } from '@ducanh2912/next-pwa';
 import type { NextConfig } from 'next';
 import path from 'node:path';
 
@@ -54,6 +54,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {
@@ -90,11 +99,27 @@ const nextConfig: NextConfig = {
   },
 };
 
+const deploySafeRuntimeCaching = runtimeCaching.filter((cache) => {
+  const cacheName = cache.options?.cacheName;
+  return ![
+    'start-url',
+    'pages',
+    'pages-rsc',
+    'pages-rsc-prefetch',
+    'next-data',
+  ].includes(cacheName ?? '');
+});
+
 export default withPWA({
   dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
+  cacheStartUrl: false,
+  dynamicStartUrl: false,
   reloadOnOnline: true,
+  workboxOptions: {
+    runtimeCaching: deploySafeRuntimeCaching,
+  },
   // Disable service worker in dev to avoid caching stale responses
   disable: process.env.NODE_ENV === 'development',
 })(nextConfig);

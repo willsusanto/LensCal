@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 
+import { PwaCacheGuard } from '@/components/pwa-cache-guard';
 import { palette } from '@/constants/palette';
 
 import './globals.css';
@@ -36,7 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="theme-color" content={palette.ink} />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <PwaCacheGuard />
+        {children}
+      </body>
     </html>
   );
 }
