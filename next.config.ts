@@ -63,8 +63,25 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/api/health',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+          {
+            key: 'X-LensCal-Origin',
+            value: 'next-health',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
+          {
+            key: 'X-LensCal-Origin',
+            value: 'next',
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
