@@ -203,6 +203,10 @@ create policy "Users can delete their own push subscriptions"
   for delete
   using (auth.uid() = user_id);
 
+revoke all on public.push_subscriptions from anon;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+grant select, insert, update, delete on public.push_subscriptions to service_role;
+
 create table if not exists public.push_reminder_deliveries (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -243,6 +247,10 @@ create policy "Users can read their own push reminder deliveries"
   on public.push_reminder_deliveries
   for select
   using (auth.uid() = user_id);
+
+revoke all on public.push_reminder_deliveries from anon;
+grant select on public.push_reminder_deliveries to authenticated;
+grant select, insert, update, delete on public.push_reminder_deliveries to service_role;
 
 do $$
 begin

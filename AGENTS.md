@@ -86,6 +86,7 @@ public/
 
 proxy.ts                  Next.js 16 proxy: session refresh and auth redirects
 supabase/schema.sql       Postgres schema, constraints, indexes, RLS policies
+supabase/migrations/      Idempotent SQL migrations for an existing hosted Supabase database
 types/lens.ts             Domain types
 worker/index.js           Custom next-pwa worker code for push/click handling
 ```
@@ -190,6 +191,8 @@ RLS in `supabase/schema.sql` also verifies that inserted/updated events referenc
 - `lib/navigation.ts` sanitizes redirect targets. Only same-origin relative paths are allowed.
 - Authenticated users visiting `/login` are redirected to `/`.
 - `/login`, `/auth/*`, Next internals, and public files with extensions are excluded from auth redirects.
+- `/api/health` bypasses Supabase session refresh and returns no-store runtime/debug status for deployment checks.
+- `/api/push/send-due-reminders` bypasses the browser-session redirect and performs its own `PUSH_CRON_SECRET` authentication.
 - `app/auth/callback/route.ts` exchanges the Supabase PKCE `code` for a session and redirects to a sanitized `next` path.
 
 Supabase client usage:
@@ -254,13 +257,25 @@ Limitations:
 
 ## Environment Variables
 
-| Variable                               | Required | Purpose                               |
-| -------------------------------------- | -------: | ------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             |      yes | Supabase project URL                  |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |      yes | Supabase publishable key              |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | fallback | Supported for older Supabase projects |
+| Variable                               | Required    | Purpose                                                                            |
+| -------------------------------------- | ----------: | ---------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             |         yes | Supabase project URL                                                               |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |         yes | Supabase publishable key                                                           |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        |    fallback | Supported for older Supabase projects                                              |
+| `SUPABASE_SECRET_KEY`                  | server push | Preferred current Supabase secret key for the protected reminder sender route      |
+| `SUPABASE_SERVICE_ROLE_KEY`            |    fallback | Legacy service-role key when `SUPABASE_SECRET_KEY` is unavailable                  |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         |        push | Browser-visible VAPID public key for Push subscriptions                            |
+| `VAPID_PRIVATE_KEY`                    | server push | Server-only VAPID private key used by `web-push`                                   |
+| `VAPID_SUBJECT`                        | server push | VAPID subject, usually `mailto:...` or an HTTPS contact URL                        |
+| `PUSH_CRON_SECRET`                     | server push | Bearer token required by `/api/push/send-due-reminders`                            |
+| `TZ`                                   | server push | Node.js container timezone used to calculate reminder hours; currently Jakarta    |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`   |  production | Stable 32-byte base64 key used across Docker builds and runtime container restarts |
 
-Do not use `EXPO_PUBLIC_*` variables. Do not add service-role keys to client-visible env vars.
+Do not use `EXPO_PUBLIC_*` variables. Do not add Supabase secret/service-role keys or VAPID private keys to client-visible env vars. The host cron receives only `PUSH_CRON_SECRET`; elevated Supabase and VAPID private keys stay inside the Next.js container.
+
+For self-hosted Docker deployments, pass `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` as both a build arg and runtime environment variable. If it changes between builds, clients with older pages or PWA-cached payloads can trigger `Failed to find Server Action` errors after deployment.
+
+For an existing hosted Supabase database, apply the pending files in `supabase/migrations/` before deploying code that depends on them. The Docker deployment workflow does not apply database migrations.
 
 ---
 
