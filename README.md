@@ -5,6 +5,7 @@ LensCal is a Next.js PWA for tracking soft contact lens usage separately for the
 ## Features
 
 - Supabase Auth login
+- Google OAuth login
 - Supabase-backed lens history and settings
 - Independent left and right lens status
 - Day count and replacement progress
@@ -29,6 +30,23 @@ Supabase is required. The Next.js proxy redirects every app route to `/login` un
 3. Copy `.env.example` to `.env.local`.
 4. Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 5. Restart the Next.js dev server after editing `.env.local`.
+
+### Google login
+
+In Supabase, open **Authentication > Providers > Google**, enable the provider,
+and add the Google OAuth client ID and secret from Google Cloud. In Google
+Cloud, add Supabase's provider callback URL as an authorized redirect URI:
+
+- `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+
+Then add these application callback URLs under **Authentication > URL
+Configuration > Redirect URLs** in Supabase:
+
+- `http://localhost:3000/auth/callback` for local development
+- `https://YOUR_DOMAIN/auth/callback` for production
+
+The login button uses Supabase's hosted OAuth redirect, so it works in desktop
+browsers and on iOS Safari when the PWA is installed.
 
 ## Notes
 
