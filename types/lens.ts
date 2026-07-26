@@ -42,6 +42,22 @@ export type AppSettings = {
   notificationReminders: NotificationReminder[];
 };
 
+export type PushSubscriptionInput = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string | null;
+};
+
+export type PushSubscriptionRecord = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  failure_count: number;
+};
+
 export type EyeState = {
   eye: Eye;
   activeLens: LensUsage | null;

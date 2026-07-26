@@ -13,50 +13,52 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // This machine-to-machine route performs its own bearer-secret authentication.
+  if (pathname === "/api/push/send-due-reminders") {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
   const { supabaseUrl, supabaseKey } = getSupabaseEnv();
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: {
-            name: string;
-            value: string;
-            options?: Record<string, unknown>;
-          }[],
-        ) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(
+        cookiesToSet: {
+          name: string;
+          value: string;
+          options?: Record<string, unknown>;
+        }[],
+      ) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
   // Refresh session. IMPORTANT: do not add logic between createServerClient and getUser.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublicPath =
-    pathname === "/login" ||
-    pathname.startsWith("/auth/");
+  const isPublicPath = pathname === "/login" || pathname.startsWith("/auth/");
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    url.searchParams.set("next", getSafeRedirectPath(`${pathname}${request.nextUrl.search}`));
+    url.searchParams.set(
+      "next",
+      getSafeRedirectPath(`${pathname}${request.nextUrl.search}`),
+    );
     const response = NextResponse.redirect(url);
     response.headers.set("X-LensCal-Origin", "next-proxy");
     return response;

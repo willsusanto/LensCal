@@ -11,6 +11,7 @@ LensCal is a Next.js PWA for tracking soft contact lens usage separately for the
 - Day count and replacement progress
 - Replace, discard, and discomfort events per eye
 - Installable PWA shell
+- Background Web Push replacement reminders
 
 ## Run Locally
 
@@ -26,10 +27,52 @@ Open the printed local Next.js URL in your browser.
 Supabase is required. The Next.js proxy redirects every app route to `/login` until a Supabase session exists.
 
 1. Create a Supabase project.
-2. Run `supabase/schema.sql` in the Supabase SQL editor.
+2. For a new project, run `supabase/schema.sql` in the Supabase SQL editor. For the existing hosted project, apply pending files from `supabase/migrations/` in filename order.
 3. Copy `.env.example` to `.env.local`.
 4. Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-5. Restart the Next.js dev server after editing `.env.local`.
+5. For background reminders, also fill in `SUPABASE_SECRET_KEY` (or the legacy `SUPABASE_SERVICE_ROLE_KEY`), `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `PUSH_CRON_SECRET`.
+6. Restart the Next.js dev server after editing `.env.local`.
+
+## Web Push Setup
+
+LensCal uses Web Push exclusively for reminders. There is no browser timer fallback. The browser saves a Push subscription in Supabase, and the protected server job sends due reminders through the browser vendor's Push service.
+
+Generate one VAPID key pair and keep it stable:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+- Put the public key in `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
+- Put the private key in `VAPID_PRIVATE_KEY`.
+- Set `VAPID_SUBJECT` to a contact such as `mailto:admin@example.com`.
+- Generate a separate random `PUSH_CRON_SECRET`; do not reuse a VAPID or Supabase key.
+- Keep the Supabase secret key, VAPID private key, and cron secret only in the Next.js Docker container environment.
+
+The sender uses `TTL: 86400`, so a Push service may queue a reminder for an offline device for up to 24 hours. Web Push remains best-effort and may expire or be retained for less time by the Push provider.
+
+## Tencent Docker and Cron
+
+The Next.js container needs all variables from `.env.example`. Set `TZ=Asia/Jakarta` in the container while LensCal has no per-user timezone setting; reminder hours are calculated in the Node.js process timezone.
+
+The host cron needs only `PUSH_CRON_SECRET`. Store it in a root-owned environment file or script rather than committing it or placing elevated Supabase/VAPID keys in cron.
+
+After deploying the schema and restarting the container, manually verify the protected route:
+
+```bash
+curl -i -X POST https://YOUR_DOMAIN/api/push/send-due-reminders \
+  -H "Authorization: Bearer YOUR_PUSH_CRON_SECRET"
+```
+
+Then call it every five minutes:
+
+```bash
+*/5 * * * * /usr/bin/curl -fsS -X POST https://YOUR_DOMAIN/api/push/send-due-reminders -H "Authorization: Bearer YOUR_PUSH_CRON_SECRET" >> /var/log/lenscal-push.log 2>&1
+```
+
+The cron endpoint bypasses browser-session redirects but performs its own bearer-secret authentication. It processes due reminders for all users through a server-only Supabase admin client. The cron host must never receive the Supabase secret key or VAPID private key.
+
+The Docker deployment workflow does not migrate Supabase automatically. Before deploying this feature against the existing hosted database, run `supabase/migrations/20260726_web_push.sql` in the Supabase SQL editor. It preserves existing lens and user-setting rows, backfills `notification_reminders` from the legacy reminder time, creates the Push tables, and upgrades existing delivery rows in place.
 
 ### Google login
 

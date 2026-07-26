@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -33,7 +33,8 @@ import {
 import {
   ensureNotificationPermissions,
   getNotificationSupportState,
-  showTestNotification,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
   type NotificationSupportState,
 } from "@/lib/notifications";
 import { formatNotificationReminder } from "@/lib/date-utils";
@@ -229,19 +230,70 @@ function nextReminderCandidate(reminders: NotificationReminder[]) {
 }
 
 export default function SettingsPage() {
-  const { settings, updateSetting, signOut, isBusy } = useLens();
+  const {
+    isReady,
+    settings,
+    updateSetting,
+    savePushSubscription,
+    revokePushSubscription,
+    signOut,
+    isBusy,
+  } = useLens();
   const pwaInstall = usePwaInstallPrompt();
+  const hasReconciledPush = useRef(false);
   const [notificationState, setNotificationState] = useState<NotificationSupportState>(() =>
     getNotificationSupportState(),
   );
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
 
+  useEffect(() => {
+    if (
+      !isReady ||
+      hasReconciledPush.current ||
+      !settings.notificationsEnabled ||
+      notificationState !== "granted"
+    ) {
+      return;
+    }
+
+    hasReconciledPush.current = true;
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const subscription = await subscribeToPushNotifications();
+        if (!subscription) {
+          throw new Error("Push subscription is unavailable.");
+        }
+
+        await savePushSubscription(subscription);
+      } catch {
+        if (!isCancelled) {
+          setNotificationMessage(
+            "This browser could not refresh its background reminder subscription. Disable and re-enable reminders.",
+          );
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isReady,
+    notificationState,
+    savePushSubscription,
+    settings.notificationsEnabled,
+  ]);
+
   const handleReminderToggle = async (checked: boolean) => {
     setNotificationMessage(null);
 
     if (!checked) {
       await updateSetting("notificationsEnabled", false);
+      const endpoint = await unsubscribeFromPushNotifications();
+      await revokePushSubscription(endpoint);
       return;
     }
 
@@ -249,11 +301,25 @@ export default function SettingsPage() {
     const nextState = getNotificationSupportState();
     setNotificationState(nextState);
 
-    await updateSetting("notificationsEnabled", isAllowed);
+    if (!isAllowed) {
+      await updateSetting("notificationsEnabled", false);
+      setNotificationMessage("Notifications were not allowed in this browser.");
+      return;
+    }
+
+    const subscription = await subscribeToPushNotifications();
+    if (!subscription) {
+      await updateSetting("notificationsEnabled", false);
+      setNotificationMessage(
+        "Background reminders could not be enabled. Check the VAPID public key and service worker setup.",
+      );
+      return;
+    }
+
+    await savePushSubscription(subscription);
+    await updateSetting("notificationsEnabled", true);
     setNotificationMessage(
-      isAllowed
-        ? "Browser notifications are enabled for this device."
-        : "Notifications were not allowed in this browser.",
+      "Background reminders are enabled for this device.",
     );
   };
 
@@ -262,13 +328,21 @@ export default function SettingsPage() {
     setNotificationMessage(null);
 
     try {
-      const didShow = await showTestNotification();
-      setNotificationState(getNotificationSupportState());
+      const response = await fetch("/api/push/test", { method: "POST" });
+      const result = (await response.json()) as { sent?: number; error?: string };
+
+      if (!response.ok || !result.sent) {
+        setNotificationMessage(result.error ?? "Test Web Push notification could not be sent.");
+        return;
+      }
+
       setNotificationMessage(
-        didShow
-          ? "Test notification sent."
-          : "Test notification could not be shown. Check browser permissions.",
+        result.sent === 1
+          ? "Test Web Push notification sent."
+          : `Test Web Push notification sent to ${result.sent} devices.`,
       );
+    } catch {
+      setNotificationMessage("Test Web Push notification could not be sent.");
     } finally {
       setIsTestingNotification(false);
     }

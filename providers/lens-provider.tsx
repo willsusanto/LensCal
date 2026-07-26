@@ -22,13 +22,15 @@ import {
   getSettings,
   insertEvent,
   openLens,
+  revokePushSubscription as revokePushSubscriptionInDb,
   updateLensUsageDates,
   updateSetting as updateSettingInDb,
+  upsertPushSubscription,
   validateOpenLensInput,
 } from '@/lib/data';
-import { cancelLensNotification, scheduleReplacementNotification } from '@/lib/notifications';
+import { unsubscribeFromPushNotifications } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/client';
-import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage } from '@/types/lens';
+import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage, PushSubscriptionInput } from '@/types/lens';
 
 type LensContextValue = {
   isReady: boolean;
@@ -46,6 +48,8 @@ type LensContextValue = {
     openedAt: Date,
     terminalEvent?: { id: string; eventAt: Date } | null,
   ) => Promise<void>;
+  savePushSubscription: (subscription: PushSubscriptionInput) => Promise<void>;
+  revokePushSubscription: (endpoint: string | null) => Promise<void>;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -187,7 +191,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           if (!didDiscard) {
             throw new Error('This lens changed before it could be replaced. Please try again.');
           }
-          await cancelLensNotification(current.id);
         }
 
         const newLens = await openLens(supabase, {
@@ -215,7 +218,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           notes,
         });
 
-        await scheduleReplacementNotification(newLens, settings);
       });
     },
     [runAction, settings, supabase, user],
@@ -231,7 +233,6 @@ export function LensProvider({ children }: PropsWithChildren) {
         const didDiscard = await discardActiveLens(supabase, user.id, current.id);
         if (!didDiscard) return;
 
-        await cancelLensNotification(current.id);
         await insertEvent(supabase, {
           userId: user.id,
           lensUsageId: current.id,
@@ -264,7 +265,7 @@ export function LensProvider({ children }: PropsWithChildren) {
     async (usageId: string, openedAt: Date, terminalEvent: { id: string; eventAt: Date } | null = null) => {
       if (!user) return;
       await runAction(async () => {
-        const updatedUsage = await updateLensUsageDates(supabase, {
+        await updateLensUsageDates(supabase, {
           userId: user.id,
           lensUsageId: usageId,
           openedAt,
@@ -272,11 +273,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           terminalEventAt: terminalEvent?.eventAt,
           monthlyReplacementDays: settings.monthlyReplacementDays,
         });
-
-        if (updatedUsage.status === 'active') {
-          await cancelLensNotification(updatedUsage.id);
-          await scheduleReplacementNotification(updatedUsage, settings);
-        }
       });
     },
     [runAction, settings, supabase, user],
@@ -292,11 +288,42 @@ export function LensProvider({ children }: PropsWithChildren) {
     [runAction, supabase, user],
   );
 
+  const savePushSubscription = useCallback(
+    async (subscription: PushSubscriptionInput) => {
+      if (!user) return;
+      await runAction(async () => {
+        await upsertPushSubscription(supabase, user.id, subscription);
+      });
+    },
+    [runAction, supabase, user],
+  );
+
+  const revokePushSubscription = useCallback(
+    async (endpoint: string | null) => {
+      if (!user || !endpoint) return;
+      await runAction(async () => {
+        await revokePushSubscriptionInDb(supabase, user.id, endpoint);
+      });
+    },
+    [runAction, supabase, user],
+  );
+
   const signOut = useCallback(async () => {
+    if (user) {
+      try {
+        const endpoint = await unsubscribeFromPushNotifications();
+        if (endpoint) {
+          await revokePushSubscriptionInDb(supabase, user.id, endpoint);
+        }
+      } catch {
+        // Signing out must still succeed if browser Push cleanup is unavailable.
+      }
+    }
+
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
-  }, [router, supabase]);
+  }, [router, supabase, user]);
 
   const value = useMemo<LensContextValue>(
     () => ({
@@ -311,6 +338,8 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateUsageDates,
+      savePushSubscription,
+      revokePushSubscription,
       updateSetting,
       signOut,
     }),
@@ -326,26 +355,12 @@ export function LensProvider({ children }: PropsWithChildren) {
       discardLens,
       markUncomfortable,
       updateUsageDates,
+      savePushSubscription,
+      revokePushSubscription,
       updateSetting,
       signOut,
     ],
   );
-
-  useEffect(() => {
-    if (!settings.notificationsEnabled) return;
-
-    const scheduledLensIds = activeLenses.map((lens) => lens.id);
-
-    for (const lens of activeLenses) {
-      void scheduleReplacementNotification(lens, settings);
-    }
-
-    return () => {
-      for (const lensId of scheduledLensIds) {
-        void cancelLensNotification(lensId);
-      }
-    };
-  }, [activeLenses, settings]);
 
   return <LensContext.Provider value={value}>{children}</LensContext.Provider>;
 }
