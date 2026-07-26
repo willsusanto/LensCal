@@ -5,6 +5,13 @@ import { getSafeRedirectPath } from "@/lib/navigation";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // This machine-to-machine route performs its own bearer-secret authentication.
+  if (pathname === "/api/push/send-due-reminders") {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
   const { supabaseUrl, supabaseKey } = getSupabaseEnv();
 
@@ -40,7 +47,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
   const isPublicPath = pathname === "/login" || pathname.startsWith("/auth/");
 
   if (!user && !isPublicPath) {

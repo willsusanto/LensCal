@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 
-import { getActivePushSubscriptions } from '@/lib/data';
+import {
+  getActivePushSubscriptions,
+  recordPushSubscriptionFailure,
+  recordPushSubscriptionSuccess,
+} from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import {
   isGonePushSubscriptionError,
@@ -47,14 +51,19 @@ export async function POST() {
               data: { url: '/' },
             },
           });
-          sent += 1;
         } catch (error) {
+          const isGone = isGonePushSubscriptionError(error);
+          await recordPushSubscriptionFailure(supabase, user.id, subscription, isGone);
           errors.push(
-            isGonePushSubscriptionError(error)
+            isGone
               ? 'A browser subscription has expired. Disable and re-enable reminders on that device.'
               : webPushErrorMessage(error),
           );
+          return;
         }
+
+        await recordPushSubscriptionSuccess(supabase, user.id, subscription.id);
+        sent += 1;
       }),
     );
 

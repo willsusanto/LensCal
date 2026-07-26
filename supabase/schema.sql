@@ -210,10 +210,25 @@ create table if not exists public.push_reminder_deliveries (
   reminder_key text not null,
   scheduled_for timestamptz not null,
   sent_at timestamptz,
-  status text not null check (status in ('sent', 'failed')),
+  status text not null
+    constraint push_reminder_deliveries_status_check
+    check (status in ('processing', 'sent', 'failed')),
   error text,
-  created_at timestamptz not null default now()
+  attempt_count integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+
+alter table public.push_reminder_deliveries
+  add column if not exists attempt_count integer not null default 1,
+  add column if not exists updated_at timestamptz not null default now();
+
+alter table public.push_reminder_deliveries
+  drop constraint if exists push_reminder_deliveries_status_check;
+
+alter table public.push_reminder_deliveries
+  add constraint push_reminder_deliveries_status_check
+  check (status in ('processing', 'sent', 'failed'));
 
 create unique index if not exists push_reminder_deliveries_unique_idx
   on public.push_reminder_deliveries (user_id, lens_usage_id, reminder_key, scheduled_for);

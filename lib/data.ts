@@ -462,3 +462,176 @@ export async function getActivePushSubscriptions(
   if (error) throw error;
   return (data ?? []) as PushSubscriptionRecord[];
 }
+
+export type ActiveReminderLens = Pick<
+  LensUsage,
+  'id' | 'user_id' | 'eye' | 'expires_at' | 'lens_type'
+>;
+
+export type PushReminderSettingsRow = {
+  user_id: string;
+  notification_reminders: unknown;
+};
+
+export async function getPushReminderSourceData(supabase: SupabaseClient) {
+  const [
+    { data: lenses, error: lensesError },
+    { data: settings, error: settingsError },
+    { data: subscriptions, error: subscriptionsError },
+  ] = await Promise.all([
+    supabase
+      .from('lens_usages')
+      .select('id, user_id, eye, expires_at, lens_type')
+      .eq('status', 'active'),
+    supabase
+      .from('user_settings')
+      .select('user_id, notification_reminders')
+      .eq('notifications_enabled', true),
+    supabase
+      .from('push_subscriptions')
+      .select('id, user_id, endpoint, p256dh, auth, failure_count')
+      .is('revoked_at', null),
+  ]);
+
+  if (lensesError) throw lensesError;
+  if (settingsError) throw settingsError;
+  if (subscriptionsError) throw subscriptionsError;
+
+  return {
+    lenses: (lenses ?? []) as ActiveReminderLens[],
+    settings: (settings ?? []) as PushReminderSettingsRow[],
+    subscriptions: (subscriptions ?? []) as PushSubscriptionRecord[],
+  };
+}
+
+type PushReminderDeliveryRow = {
+  id: string;
+  status: 'processing' | 'sent' | 'failed';
+  attempt_count: number;
+  updated_at: string;
+};
+
+export async function claimPushReminderDelivery(
+  supabase: SupabaseClient,
+  input: {
+    userId: string;
+    lensUsageId: string;
+    deliveryKey: string;
+    scheduledFor: string;
+  },
+): Promise<string | null> {
+  const now = nowIso();
+  const deliveryId = createId('prd');
+  const row = {
+    id: deliveryId,
+    user_id: input.userId,
+    lens_usage_id: input.lensUsageId,
+    reminder_key: input.deliveryKey,
+    scheduled_for: input.scheduledFor,
+    sent_at: null,
+    status: 'processing',
+    error: null,
+    attempt_count: 1,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const { error: insertError } = await supabase.from('push_reminder_deliveries').insert(row);
+  if (!insertError) return deliveryId;
+  if (insertError.code !== '23505') throw insertError;
+
+  const { data: existingData, error: existingError } = await supabase
+    .from('push_reminder_deliveries')
+    .select('id, status, attempt_count, updated_at')
+    .eq('user_id', input.userId)
+    .eq('lens_usage_id', input.lensUsageId)
+    .eq('reminder_key', input.deliveryKey)
+    .eq('scheduled_for', input.scheduledFor)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existingData) return null;
+
+  const existing = existingData as PushReminderDeliveryRow;
+  if (existing.status === 'sent') return null;
+
+  const staleProcessingCutoff = Date.now() - 10 * 60 * 1000;
+  if (
+    existing.status === 'processing' &&
+    new Date(existing.updated_at).getTime() > staleProcessingCutoff
+  ) {
+    return null;
+  }
+
+  const { data: claimedData, error: claimError } = await supabase
+    .from('push_reminder_deliveries')
+    .update({
+      status: 'processing',
+      sent_at: null,
+      error: null,
+      attempt_count: existing.attempt_count + 1,
+      updated_at: now,
+    })
+    .eq('id', existing.id)
+    .eq('status', existing.status)
+    .eq('updated_at', existing.updated_at)
+    .select('id')
+    .maybeSingle();
+  if (claimError) throw claimError;
+
+  return claimedData?.id ?? null;
+}
+
+export async function completePushReminderDelivery(
+  supabase: SupabaseClient,
+  deliveryId: string,
+  result: { status: 'sent' | 'failed'; error?: string | null },
+): Promise<void> {
+  const now = nowIso();
+  const { error } = await supabase
+    .from('push_reminder_deliveries')
+    .update({
+      status: result.status,
+      sent_at: result.status === 'sent' ? now : null,
+      error: result.error?.slice(0, 1000) ?? null,
+      updated_at: now,
+    })
+    .eq('id', deliveryId)
+    .eq('status', 'processing');
+  if (error) throw error;
+}
+
+export async function recordPushSubscriptionSuccess(
+  supabase: SupabaseClient,
+  userId: string,
+  subscriptionId: string,
+): Promise<void> {
+  const now = nowIso();
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .update({ last_success_at: now, failure_count: 0, updated_at: now })
+    .eq('user_id', userId)
+    .eq('id', subscriptionId);
+  if (error) throw error;
+}
+
+export async function recordPushSubscriptionFailure(
+  supabase: SupabaseClient,
+  userId: string,
+  subscription: Pick<PushSubscriptionRecord, 'id' | 'failure_count'>,
+  revoked: boolean,
+): Promise<void> {
+  const now = nowIso();
+  const update: Record<string, unknown> = {
+    last_failure_at: now,
+    failure_count: subscription.failure_count + 1,
+    updated_at: now,
+  };
+  if (revoked) update.revoked_at = now;
+
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .update(update)
+    .eq('user_id', userId)
+    .eq('id', subscription.id);
+  if (error) throw error;
+}
