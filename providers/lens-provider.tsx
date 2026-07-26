@@ -28,6 +28,7 @@ import {
   upsertPushSubscription,
   validateOpenLensInput,
 } from '@/lib/data';
+import { unsubscribeFromPushNotifications } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/client';
 import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage, PushSubscriptionInput } from '@/types/lens';
 
@@ -308,10 +309,21 @@ export function LensProvider({ children }: PropsWithChildren) {
   );
 
   const signOut = useCallback(async () => {
+    if (user) {
+      try {
+        const endpoint = await unsubscribeFromPushNotifications();
+        if (endpoint) {
+          await revokePushSubscriptionInDb(supabase, user.id, endpoint);
+        }
+      } catch {
+        // Signing out must still succeed if browser Push cleanup is unavailable.
+      }
+    }
+
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
-  }, [router, supabase]);
+  }, [router, supabase, user]);
 
   const value = useMemo<LensContextValue>(
     () => ({

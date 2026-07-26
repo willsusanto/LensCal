@@ -27,6 +27,20 @@ function base64UrlToUint8Array(value: string) {
   return outputArray;
 }
 
+function subscriptionUsesApplicationServerKey(
+  subscription: PushSubscription,
+  applicationServerKey: Uint8Array,
+) {
+  const existingKey = subscription.options.applicationServerKey;
+  if (!existingKey) return false;
+
+  const existingBytes = new Uint8Array(existingKey);
+  return (
+    existingBytes.length === applicationServerKey.length &&
+    existingBytes.every((byte, index) => byte === applicationServerKey[index])
+  );
+}
+
 async function getServiceWorkerRegistration() {
   if (!isBrowser() || !('serviceWorker' in navigator)) return null;
 
@@ -77,12 +91,22 @@ export async function subscribeToPushNotifications(): Promise<PushSubscriptionIn
   const registration = await ensureServiceWorkerRegistration();
   if (!registration || !('pushManager' in registration)) return null;
 
-  const existingSubscription = await registration.pushManager.getSubscription();
+  const applicationServerKey = base64UrlToUint8Array(vapidPublicKey);
+  let existingSubscription = await registration.pushManager.getSubscription();
+
+  if (
+    existingSubscription &&
+    !subscriptionUsesApplicationServerKey(existingSubscription, applicationServerKey)
+  ) {
+    await existingSubscription.unsubscribe();
+    existingSubscription = null;
+  }
+
   const subscription =
     existingSubscription ??
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+      applicationServerKey,
     }));
   const json = subscription.toJSON();
 

@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/segmented-control";
@@ -230,13 +230,62 @@ function nextReminderCandidate(reminders: NotificationReminder[]) {
 }
 
 export default function SettingsPage() {
-  const { settings, updateSetting, savePushSubscription, revokePushSubscription, signOut, isBusy } = useLens();
+  const {
+    isReady,
+    settings,
+    updateSetting,
+    savePushSubscription,
+    revokePushSubscription,
+    signOut,
+    isBusy,
+  } = useLens();
   const pwaInstall = usePwaInstallPrompt();
+  const hasReconciledPush = useRef(false);
   const [notificationState, setNotificationState] = useState<NotificationSupportState>(() =>
     getNotificationSupportState(),
   );
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
+
+  useEffect(() => {
+    if (
+      !isReady ||
+      hasReconciledPush.current ||
+      !settings.notificationsEnabled ||
+      notificationState !== "granted"
+    ) {
+      return;
+    }
+
+    hasReconciledPush.current = true;
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const subscription = await subscribeToPushNotifications();
+        if (!subscription) {
+          throw new Error("Push subscription is unavailable.");
+        }
+
+        await savePushSubscription(subscription);
+      } catch {
+        if (!isCancelled) {
+          setNotificationMessage(
+            "This browser could not refresh its background reminder subscription. Disable and re-enable reminders.",
+          );
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isReady,
+    notificationState,
+    savePushSubscription,
+    settings.notificationsEnabled,
+  ]);
 
   const handleReminderToggle = async (checked: boolean) => {
     setNotificationMessage(null);
