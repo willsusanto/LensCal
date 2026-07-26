@@ -39,5 +39,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Return to login with an error indicator if exchange fails.
-  return NextResponse.redirect(new URL("/login?error=auth_callback_failed", origin));
+  const loginUrl = new URL("/login", origin);
+  loginUrl.searchParams.set("error", "auth_callback_failed");
+  if (next !== "/") loginUrl.searchParams.set("next", next);
+  return NextResponse.redirect(loginUrl);
 }

@@ -17,7 +17,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("error") === "auth_callback_failed"
+      ? "Google sign-in could not be completed. Please try again."
+      : null;
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -25,6 +30,30 @@ export default function LoginPage() {
   function getPostLoginPath() {
     if (typeof window === "undefined") return "/";
     return getSafeRedirectPath(new URLSearchParams(window.location.search).get("next"));
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    setMessage(null);
+    setIsLoading(true);
+    const supabase = createClient();
+
+    try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", getPostLoginPath());
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callbackUrl.toString(),
+        },
+      });
+
+      if (error) throw new Error("Could not start Google sign-in. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setIsLoading(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -134,6 +163,23 @@ export default function LoginPage() {
                 </Button>
               </form>
 
+              <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-muted">
+                <span className="h-px flex-1 bg-line" />
+                <span>or</span>
+                <span className="h-px flex-1 bg-line" />
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isLoading}
+                onClick={handleGoogleSignIn}
+                className="w-full"
+              >
+                <GoogleIcon />
+                Continue with Google
+              </Button>
+
               <Button
                 type="button"
                 variant="ghost"
@@ -151,5 +197,28 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+      <path
+        fill="#4285F4"
+        d="M21.35 12.23c0-.72-.06-1.42-.18-2.09H12v3.96h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.26Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 21.5c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.5Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.53 13.58A5.86 5.86 0 0 1 6.22 12c0-.55.1-1.08.31-1.58V7.89H3.29A9.48 9.48 0 0 0 2.25 12c0 1.48.35 2.88 1.04 4.11l3.24-2.53Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6.39c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.49 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.39l3.24 2.53C7.3 8.11 9.46 6.39 12 6.39Z"
+      />
+    </svg>
   );
 }
