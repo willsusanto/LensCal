@@ -5,6 +5,14 @@ import { getSafeRedirectPath } from "@/lib/navigation";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/api/health") {
+    const response = NextResponse.next({ request });
+    response.headers.set("X-LensCal-Origin", "next-proxy");
+    return response;
+  }
+
   let supabaseResponse = NextResponse.next({ request });
   const { supabaseUrl, supabaseKey } = getSupabaseEnv();
 
@@ -40,23 +48,29 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isPublicPath = pathname === "/login" || pathname.startsWith("/auth/");
+  const isPublicPath =
+    pathname === "/login" ||
+    pathname.startsWith("/auth/");
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
     url.searchParams.set("next", getSafeRedirectPath(`${pathname}${request.nextUrl.search}`));
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("X-LensCal-Origin", "next-proxy");
+    return response;
   }
 
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("X-LensCal-Origin", "next-proxy");
+    return response;
   }
 
+  supabaseResponse.headers.set("X-LensCal-Origin", "next-proxy");
   return supabaseResponse;
 }
 

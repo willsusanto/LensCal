@@ -47,6 +47,17 @@ Configuration > Redirect URLs** in Supabase:
 
 The login button uses Supabase's hosted OAuth redirect, so it works in desktop
 browsers and on iOS Safari when the PWA is installed.
+## Self-Hosted Deploy Notes
+
+Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to a stable base64-encoded 32-byte value in production. Next.js uses it to encrypt Server Action references; changing it on every Docker rebuild can make clients with an older page send action requests that the new deployment cannot resolve.
+
+Generate one once:
+
+```bash
+openssl rand -base64 32
+```
+
+For Docker builds, pass the same value as both a build argument and runtime environment variable.
 
 ## Notes
 

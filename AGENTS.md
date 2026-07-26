@@ -38,6 +38,7 @@ app/
     replace-lens/page.tsx Open/change a lens; eye comes from ?eye=left|right
   login/page.tsx          Email/password sign-in + sign-up
   auth/callback/route.ts  Supabase PKCE code exchange, safe redirect
+  api/health/route.ts     Public no-store health/debug endpoint
 
 components/
   bottom-nav.tsx
@@ -173,6 +174,7 @@ RLS in `supabase/schema.sql` also verifies that inserted/updated events referenc
 - `lib/navigation.ts` sanitizes redirect targets. Only same-origin relative paths are allowed.
 - Authenticated users visiting `/login` are redirected to `/`.
 - `/login`, `/auth/*`, Next internals, and public files with extensions are excluded from auth redirects.
+- `/api/health` bypasses Supabase session refresh and returns no-store runtime/debug status for deployment checks.
 - `app/auth/callback/route.ts` exchanges the Supabase PKCE `code` for a session and redirects to a sanitized `next` path.
 
 Supabase client usage:
@@ -233,8 +235,11 @@ Limitations:
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase publishable key |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | fallback | Supported for older Supabase projects |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | production | Stable 32-byte base64 key for Server Action encryption across Docker rebuilds |
 
 Do not use `EXPO_PUBLIC_*` variables. Do not add service-role keys to client-visible env vars.
+
+For self-hosted Docker deployments, pass `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` as both a build arg and runtime environment variable. If it changes between builds, clients with older pages or PWA-cached payloads can trigger `Failed to find Server Action` errors after deployment.
 
 ---
 
