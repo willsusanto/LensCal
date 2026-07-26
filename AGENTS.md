@@ -10,18 +10,18 @@ The app is now a Next.js PWA. It has install metadata, Workbox service-worker ge
 
 ## Tech Stack
 
-| Layer | Library / Version |
-|---|---|
+| Layer     | Library / Version                                                     |
+| --------- | --------------------------------------------------------------------- |
 | Framework | Next.js `^16.2.9` App Router, Turbopack dev, webpack production build |
-| Runtime | Node `>=20.0.0` |
-| Language | TypeScript `~5.9.2`, strict, path alias `@/*` to project root |
-| Styling | Tailwind CSS v3, colours from `constants/palette.ts` |
-| Font | Plus Jakarta Sans via `next/font/google` (`--font-jakarta`) |
-| Auth + DB | `@supabase/supabase-js` `^2.108.2` + `@supabase/ssr` `^0.6.1` |
-| Icons | `lucide-react` |
-| PWA | `@ducanh2912/next-pwa` with generated Workbox files ignored in git |
-| Web Push | `web-push` with VAPID keys and a protected cron route |
-| State | React Context only: `LensProvider` |
+| Runtime   | Node `>=20.0.0`                                                       |
+| Language  | TypeScript `~5.9.2`, strict, path alias `@/*` to project root         |
+| Styling   | Tailwind CSS v3, colours from `constants/palette.ts`                  |
+| Font      | Plus Jakarta Sans via `next/font/google` (`--font-jakarta`)           |
+| Auth + DB | `@supabase/supabase-js` `^2.108.2` + `@supabase/ssr` `^0.6.1`         |
+| Icons     | `lucide-react`                                                        |
+| PWA       | `@ducanh2912/next-pwa` with generated Workbox files ignored in git    |
+| Web Push  | `web-push` with VAPID keys and a protected cron route                 |
+| State     | React Context only: `LensProvider`                                    |
 
 ---
 
@@ -39,6 +39,7 @@ app/
     replace-lens/page.tsx Open/change a lens; eye comes from ?eye=left|right
   login/page.tsx          Email/password sign-in + sign-up
   auth/callback/route.ts  Supabase PKCE code exchange, safe redirect
+  api/health/route.ts     Public no-store health/debug endpoint
   api/push/send-due-reminders/route.ts Protected server-side Web Push sender
   api/push/test/route.ts  Authenticated current-user Web Push test sender
 
@@ -161,22 +162,22 @@ Login and sign-up live directly in `app/login/page.tsx`, because that page is ou
 
 Every read/update is explicitly scoped by `user_id` in addition to RLS:
 
-| Function | Purpose |
-|---|---|
-| `getActiveLenses(supabase, userId)` | Active lenses for current user |
-| `getLensHistory(supabase, userId)` | Usage history, newest first |
-| `getEvents(supabase, userId)` | Event history, newest first |
-| `openLens(supabase, input)` | Insert one `lens_usages` row |
-| `discardActiveLens(supabase, userId, id)` | Mark an active lens discarded |
-| `insertEvent(supabase, input)` | Insert one `lens_events` row |
-| `getSettings(supabase, userId)` | Read or create default `user_settings` |
-| `updateSetting(supabase, userId, key, value)` | Validate and upsert one setting |
-| `upsertPushSubscription(supabase, userId, input)` | Save/refresh one browser Push subscription |
-| `revokePushSubscription(supabase, userId, endpoint)` | Mark one browser Push subscription revoked |
-| `getPushReminderSourceData(supabase)` | Read all active reminder sources for the admin cron sender |
-| `claimPushReminderDelivery(supabase, input)` | Atomically claim one reminder/subscription delivery |
-| `completePushReminderDelivery(supabase, id, result)` | Mark a claimed delivery sent or failed |
-| `recordPushSubscriptionSuccess/Failure(...)` | Maintain subscription health and revocation state |
+| Function                                             | Purpose                                                    |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| `getActiveLenses(supabase, userId)`                  | Active lenses for current user                             |
+| `getLensHistory(supabase, userId)`                   | Usage history, newest first                                |
+| `getEvents(supabase, userId)`                        | Event history, newest first                                |
+| `openLens(supabase, input)`                          | Insert one `lens_usages` row                               |
+| `discardActiveLens(supabase, userId, id)`            | Mark an active lens discarded                              |
+| `insertEvent(supabase, input)`                       | Insert one `lens_events` row                               |
+| `getSettings(supabase, userId)`                      | Read or create default `user_settings`                     |
+| `updateSetting(supabase, userId, key, value)`        | Validate and upsert one setting                            |
+| `upsertPushSubscription(supabase, userId, input)`    | Save/refresh one browser Push subscription                 |
+| `revokePushSubscription(supabase, userId, endpoint)` | Mark one browser Push subscription revoked                 |
+| `getPushReminderSourceData(supabase)`                | Read all active reminder sources for the admin cron sender |
+| `claimPushReminderDelivery(supabase, input)`         | Atomically claim one reminder/subscription delivery        |
+| `completePushReminderDelivery(supabase, id, result)` | Mark a claimed delivery sent or failed                     |
+| `recordPushSubscriptionSuccess/Failure(...)`         | Maintain subscription health and revocation state          |
 
 RLS in `supabase/schema.sql` also verifies that inserted/updated events reference a lens usage owned by the same authenticated user.
 
@@ -189,7 +190,6 @@ RLS in `supabase/schema.sql` also verifies that inserted/updated events referenc
 - `lib/navigation.ts` sanitizes redirect targets. Only same-origin relative paths are allowed.
 - Authenticated users visiting `/login` are redirected to `/`.
 - `/login`, `/auth/*`, Next internals, and public files with extensions are excluded from auth redirects.
-- `/api/push/send-due-reminders` bypasses the browser-session redirect and performs its own `PUSH_CRON_SECRET` authentication.
 - `app/auth/callback/route.ts` exchanges the Supabase PKCE `code` for a session and redirects to a sanitized `next` path.
 
 Supabase client usage:
@@ -254,26 +254,13 @@ Limitations:
 
 ## Environment Variables
 
-| Variable | Required | Purpose |
-|---|---:|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase publishable key |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | fallback | Supported for older Supabase projects |
-| `SUPABASE_SECRET_KEY` | server push | Preferred current Supabase secret key for the protected reminder sender route |
-| `SUPABASE_SERVICE_ROLE_KEY` | fallback | Legacy service-role key when `SUPABASE_SECRET_KEY` is unavailable |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | push | Browser-visible VAPID public key for Push subscriptions |
-| `VAPID_PRIVATE_KEY` | server push | Server-only VAPID private key used by `web-push` |
-| `VAPID_SUBJECT` | server push | VAPID subject, usually `mailto:...` or an HTTPS contact URL |
-| `PUSH_CRON_SECRET` | server push | Bearer token required by `/api/push/send-due-reminders` |
-| `TZ` | server push | Node.js container timezone used to calculate reminder hours; currently `Asia/Jakarta` |
+| Variable                               | Required | Purpose                               |
+| -------------------------------------- | -------: | ------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             |      yes | Supabase project URL                  |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |      yes | Supabase publishable key              |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | fallback | Supported for older Supabase projects |
 
-Do not use `EXPO_PUBLIC_*` variables. Do not add Supabase secret/service-role keys or VAPID private keys to client-visible env vars. The host cron receives only `PUSH_CRON_SECRET`; elevated Supabase and VAPID private keys stay inside the Next.js container.
-
-Tencent Cloud VPS cron example:
-
-```bash
-*/5 * * * * /usr/bin/curl -fsS -X POST https://YOUR_DOMAIN/api/push/send-due-reminders -H "Authorization: Bearer YOUR_PUSH_CRON_SECRET" >> /var/log/lenscal-push.log 2>&1
-```
+Do not use `EXPO_PUBLIC_*` variables. Do not add service-role keys to client-visible env vars.
 
 ---
 

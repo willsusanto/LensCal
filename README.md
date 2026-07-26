@@ -5,6 +5,7 @@ LensCal is a Next.js PWA for tracking soft contact lens usage separately for the
 ## Features
 
 - Supabase Auth login
+- Google OAuth login
 - Supabase-backed lens history and settings
 - Independent left and right lens status
 - Day count and replacement progress
@@ -70,6 +71,34 @@ Then call it every five minutes:
 ```
 
 The cron endpoint bypasses browser-session redirects but performs its own bearer-secret authentication. It processes due reminders for all users through a server-only Supabase admin client. The cron host must never receive the Supabase secret key or VAPID private key.
+
+### Google login
+
+In Supabase, open **Authentication > Providers > Google**, enable the provider,
+and add the Google OAuth client ID and secret from Google Cloud. In Google
+Cloud, add Supabase's provider callback URL as an authorized redirect URI:
+
+- `https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+
+Then add these application callback URLs under **Authentication > URL
+Configuration > Redirect URLs** in Supabase:
+
+- `http://localhost:3000/auth/callback` for local development
+- `https://YOUR_DOMAIN/auth/callback` for production
+
+The login button uses Supabase's hosted OAuth redirect, so it works in desktop
+browsers and on iOS Safari when the PWA is installed.
+## Self-Hosted Deploy Notes
+
+Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to a stable base64-encoded 32-byte value in production. Next.js uses it to encrypt Server Action references; changing it on every Docker rebuild can make clients with an older page send action requests that the new deployment cannot resolve.
+
+Generate one once:
+
+```bash
+openssl rand -base64 32
+```
+
+For Docker builds, pass the same value as both a build argument and runtime environment variable.
 
 ## Notes
 
