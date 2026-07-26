@@ -33,7 +33,6 @@ import {
 import {
   ensureNotificationPermissions,
   getNotificationSupportState,
-  showTestNotification,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
   type NotificationSupportState,
@@ -280,13 +279,21 @@ export default function SettingsPage() {
     setNotificationMessage(null);
 
     try {
-      const didShow = await showTestNotification();
-      setNotificationState(getNotificationSupportState());
+      const response = await fetch("/api/push/test", { method: "POST" });
+      const result = (await response.json()) as { sent?: number; error?: string };
+
+      if (!response.ok || !result.sent) {
+        setNotificationMessage(result.error ?? "Test Web Push notification could not be sent.");
+        return;
+      }
+
       setNotificationMessage(
-        didShow
-          ? "Test notification sent."
-          : "Test notification could not be shown. Check browser permissions.",
+        result.sent === 1
+          ? "Test Web Push notification sent."
+          : `Test Web Push notification sent to ${result.sent} devices.`,
       );
+    } catch {
+      setNotificationMessage("Test Web Push notification could not be sent.");
     } finally {
       setIsTestingNotification(false);
     }

@@ -18,6 +18,7 @@ import type {
   LensType,
   LensUsage,
   PushSubscriptionInput,
+  PushSubscriptionRecord,
 } from '@/types/lens';
 
 function createId(prefix: string): string {
@@ -447,4 +448,17 @@ export async function revokePushSubscription(
     .eq('user_id', userId)
     .eq('endpoint', endpoint);
   if (error) throw error;
+}
+
+export async function getActivePushSubscriptions(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<PushSubscriptionRecord[]> {
+  const { data, error } = await supabase
+    .from('push_subscriptions')
+    .select('id, user_id, endpoint, p256dh, auth, failure_count')
+    .eq('user_id', userId)
+    .is('revoked_at', null);
+  if (error) throw error;
+  return (data ?? []) as PushSubscriptionRecord[];
 }

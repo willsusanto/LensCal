@@ -28,7 +28,6 @@ import {
   upsertPushSubscription,
   validateOpenLensInput,
 } from '@/lib/data';
-import { cancelLensNotification, scheduleReplacementNotification } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/client';
 import type { AppSettings, Eye, EyeState, LensEvent, LensType, LensUsage, PushSubscriptionInput } from '@/types/lens';
 
@@ -191,7 +190,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           if (!didDiscard) {
             throw new Error('This lens changed before it could be replaced. Please try again.');
           }
-          await cancelLensNotification(current.id);
         }
 
         const newLens = await openLens(supabase, {
@@ -219,7 +217,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           notes,
         });
 
-        await scheduleReplacementNotification(newLens, settings);
       });
     },
     [runAction, settings, supabase, user],
@@ -235,7 +232,6 @@ export function LensProvider({ children }: PropsWithChildren) {
         const didDiscard = await discardActiveLens(supabase, user.id, current.id);
         if (!didDiscard) return;
 
-        await cancelLensNotification(current.id);
         await insertEvent(supabase, {
           userId: user.id,
           lensUsageId: current.id,
@@ -268,7 +264,7 @@ export function LensProvider({ children }: PropsWithChildren) {
     async (usageId: string, openedAt: Date, terminalEvent: { id: string; eventAt: Date } | null = null) => {
       if (!user) return;
       await runAction(async () => {
-        const updatedUsage = await updateLensUsageDates(supabase, {
+        await updateLensUsageDates(supabase, {
           userId: user.id,
           lensUsageId: usageId,
           openedAt,
@@ -276,11 +272,6 @@ export function LensProvider({ children }: PropsWithChildren) {
           terminalEventAt: terminalEvent?.eventAt,
           monthlyReplacementDays: settings.monthlyReplacementDays,
         });
-
-        if (updatedUsage.status === 'active') {
-          await cancelLensNotification(updatedUsage.id);
-          await scheduleReplacementNotification(updatedUsage, settings);
-        }
       });
     },
     [runAction, settings, supabase, user],
@@ -358,22 +349,6 @@ export function LensProvider({ children }: PropsWithChildren) {
       signOut,
     ],
   );
-
-  useEffect(() => {
-    if (!settings.notificationsEnabled) return;
-
-    const scheduledLensIds = activeLenses.map((lens) => lens.id);
-
-    for (const lens of activeLenses) {
-      void scheduleReplacementNotification(lens, settings);
-    }
-
-    return () => {
-      for (const lensId of scheduledLensIds) {
-        void cancelLensNotification(lensId);
-      }
-    };
-  }, [activeLenses, settings]);
 
   return <LensContext.Provider value={value}>{children}</LensContext.Provider>;
 }
