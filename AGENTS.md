@@ -230,6 +230,41 @@ Supabase client usage:
   - per-subscription atomic delivery claims, failed retries, and stale claim recovery through `push_reminder_deliveries`
   - stale subscription revocation on 404/410 Web Push failures
 
+### Push Delivery Architecture
+
+```mermaid
+sequenceDiagram
+    participant Browser as Browser and service worker
+    participant Vendor as Browser vendor Push service
+    participant App as LensCal browser app
+    participant DB as Supabase
+    participant Cron as VPS cron
+    participant API as Next.js reminder route
+
+    Browser->>Vendor: Create Push subscription with LensCal VAPID public key
+    Vendor-->>Browser: Subscription endpoint, p256dh public key, auth secret
+    Browser->>App: Return subscription details after permission is granted
+    App->>DB: Save endpoint, p256dh, auth, and authenticated user_id
+
+    Cron->>API: POST with PUSH_CRON_SECRET every five minutes
+    API->>DB: Load due lenses, settings, and active subscriptions per user
+    API->>API: Claim each delivery and encrypt payload for each subscription
+    API->>Vendor: HTTPS Web Push request to that subscription endpoint
+    Vendor->>Browser: Deliver message and wake service worker
+    Browser->>Browser: Handle push event and show notification
+```
+
+Push subscription and sender credentials have distinct roles:
+
+- `endpoint`: a browser-vendor URL that identifies one browser profile and subscription; it is the destination for the encrypted Web Push request.
+- `p256dh`: a per-subscription browser public encryption key. The server uses it to encrypt a payload that only that browser subscription can decrypt.
+- `auth`: a per-subscription encryption secret used with `p256dh`; it is not a public key. LensCal stores it with the subscription to encrypt outgoing payloads.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: LensCal's public sender identity. The browser uses it when creating a subscription and the server uses the matching key pair when sending.
+- `VAPID_PRIVATE_KEY`: LensCal's server-only private sender key. `web-push` uses it to sign/authenticate requests to the vendor Push service; never expose it to the browser.
+- `PUSH_CRON_SECRET`: a shared secret between the external cron and the protected reminder route. It authorizes cron invocations; it is unrelated to Web Push payload encryption.
+
+One user can have multiple active subscription rows, for example a Chrome laptop browser and an installed Safari iPhone web app. The sender encrypts and sends the reminder once per active subscription. A `404` or `410` response marks only the invalid subscription inactive.
+
 Limitations:
 
 - Background reminders depend on HTTPS, browser Push support, configured VAPID keys, and the external VPS cron running regularly.
@@ -271,7 +306,7 @@ Limitations:
 
 ## Environment Variables
 
-| Variable                               | Required    | Purpose                                                                            |
+| Variable                               |    Required | Purpose                                                                            |
 | -------------------------------------- | ----------: | ---------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_SUPABASE_URL`             |         yes | Supabase project URL                                                               |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |         yes | Supabase publishable key                                                           |
@@ -282,7 +317,7 @@ Limitations:
 | `VAPID_PRIVATE_KEY`                    | server push | Server-only VAPID private key used by `web-push`                                   |
 | `VAPID_SUBJECT`                        | server push | VAPID subject, usually `mailto:...` or an HTTPS contact URL                        |
 | `PUSH_CRON_SECRET`                     | server push | Bearer token required by `/api/push/send-due-reminders`                            |
-| `TZ`                                   | server push | Node.js container timezone used to calculate reminder hours; currently Jakarta    |
+| `TZ`                                   | server push | Node.js container timezone used to calculate reminder hours; currently Jakarta     |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`   |  production | Stable 32-byte base64 key used across Docker builds and runtime container restarts |
 
 Do not use `EXPO_PUBLIC_*` variables. Do not add Supabase secret/service-role keys or VAPID private keys to client-visible env vars. The host cron receives only `PUSH_CRON_SECRET`; elevated Supabase and VAPID private keys stay inside the Next.js container.
