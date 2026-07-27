@@ -510,7 +510,7 @@ export default function SettingsPage() {
 
                         <p className="pb-3 text-sm font-black text-muted sm:whitespace-nowrap sm:text-center">before at</p>
 
-                        <div className="space-y-2">
+                        <div className="min-w-0 space-y-2">
                           <Label htmlFor={`reminder-time-${index}`}>Time</Label>
                           <Input
                             id={`reminder-time-${index}`}
@@ -522,7 +522,7 @@ export default function SettingsPage() {
                               if (time) updateReminder(index, time);
                             }}
                             disabled={isBusy}
-                            className="tabular-nums"
+                            className="max-w-full tabular-nums"
                           />
                         </div>
 
