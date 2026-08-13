@@ -372,3 +372,10 @@ The local `npm` shim may be broken on some machines. If so, use `D:\Programs\nod
 8. Apply `supabase/schema.sql` for a new project or the appropriate migration for an existing hosted project when schema/RLS changes are made.
 9. Generated PWA worker files in `public/` are ignored build artifacts.
 10. Keep `AGENTS.md` current when architecture, commands, routes, or constraints change.
+
+## Worktrees
+
+When starting any new feature or fix, begin by creating a separate git worktree from the base
+branch and do all work inside it, so parallel agents never overwrite each other's changes.
+After the work is merged, clean up by removing the worktree. For the next task, create a fresh
+worktree from the latest base branch — don't reuse old trees.
