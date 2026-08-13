@@ -3,7 +3,9 @@
 import { Check, Eye, Pencil, X } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 
+import { CalendarView } from "@/components/calendar-view";
 import { PageHeader } from "@/components/page-header";
+
 import { SegmentedControl } from "@/components/segmented-control";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,12 +19,19 @@ import { useLens } from "@/providers/lens-provider";
 import type { Eye as EyeType, LensEvent, LensType, LensUsage } from "@/types/lens";
 
 type EyeFilter = "all" | EyeType;
+type ViewMode = "calendar" | "list";
+
+const viewModeOptions: { label: string; value: ViewMode }[] = [
+  { label: "Calendar", value: "calendar" },
+  { label: "List & Stats", value: "list" },
+];
 
 const eyeFilterOptions: { label: string; value: EyeFilter }[] = [
   { label: "All", value: "all" },
   { label: "Left", value: "left" },
   { label: "Right", value: "right" },
 ];
+
 
 function terminalEventFor(events: LensEvent[]) {
   return events.reduce<LensEvent | null>((terminal, event) => {
@@ -367,6 +376,7 @@ function UsageStatsCard({
 
 export default function HistoryPage() {
   const { history, events, isReady, isBusy, updateUsageDates } = useLens();
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
 
   const eventsByUsageId = useMemo(() => {
@@ -410,31 +420,42 @@ export default function HistoryPage() {
         </Card>
       ) : (
         <>
-          <div className="max-w-md">
-            <SegmentedControl options={eyeFilterOptions} value={eyeFilter} onChange={setEyeFilter} />
+          <div className="max-w-xs">
+            <SegmentedControl options={viewModeOptions} value={viewMode} onChange={setViewMode} />
           </div>
 
-          <UsageStatsCard usages={filteredHistory} eventsByUsageId={eventsByUsageId} />
-
-          {filteredHistory.length === 0 ? (
-            <Card className="p-6">
-              <p className="text-sm font-bold text-muted">No records match this filter.</p>
-            </Card>
+          {viewMode === "calendar" ? (
+            <CalendarView history={history} events={events} />
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {filteredHistory.map((usage) => (
-                <UsageRow
-                  key={usage.id}
-                  usage={usage}
-                  events={eventsByUsageId.get(usage.id) ?? []}
-                  isBusy={isBusy}
-                  onUpdateDates={updateUsageDates}
-                />
-              ))}
-            </div>
+            <>
+              <div className="max-w-md">
+                <SegmentedControl options={eyeFilterOptions} value={eyeFilter} onChange={setEyeFilter} />
+              </div>
+
+              <UsageStatsCard usages={filteredHistory} eventsByUsageId={eventsByUsageId} />
+
+              {filteredHistory.length === 0 ? (
+                <Card className="p-6">
+                  <p className="text-sm font-bold text-muted">No records match this filter.</p>
+                </Card>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {filteredHistory.map((usage) => (
+                    <UsageRow
+                      key={usage.id}
+                      usage={usage}
+                      events={eventsByUsageId.get(usage.id) ?? []}
+                      isBusy={isBusy}
+                      onUpdateDates={updateUsageDates}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
     </div>
   );
 }
+

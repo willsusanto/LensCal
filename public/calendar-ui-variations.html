@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LensCal - Market Standard Calendar UI (Google & Apple Inspired)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            background: '#F6FAFE',
+            surface: '#FFFFFF',
+            surfaceBlue: '#EAF6FF',
+            surfaceSoft: '#F1F6FA',
+            ink: '#101216',
+            muted: '#66717E',
+            line: '#DDE7F0',
+            blueDeep: '#1784CE',
+            danger: '#B4233A',
+            dangerBg: '#FFECEF',
+            openedGreen: '#16A34A',
+            openedBg: '#DCFCE7',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F6FAFE; color: #101216; }
+    .tab-btn.active { background-color: #101216; color: #FFFFFF; }
+  </style>
+</head>
+<body class="min-h-screen pb-20 pt-6 px-4 max-w-5xl mx-auto">
+  <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-line pb-5">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-blueDeep text-white uppercase tracking-wider">Market Standard</span>
+        <span class="text-xs font-extrabold text-muted">Google &amp; Apple Calendar Inspired</span>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-black text-ink mt-1">Calendar UI Best Practices</h1>
+      <p class="text-sm font-extrabold text-muted">Clean glanceable month grid paired with an instant Day Agenda sheet below.</p>
+    </div>
+  </header>
+
+  <section id="gcal-dots" class="space-y-6">
+    <div class="bg-surface border border-line rounded-2xl p-6 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <span class="text-xs font-extrabold uppercase text-blueDeep tracking-wide">Market Standard Pattern</span>
+          <h2 class="text-xl font-black text-ink">August 2026</h2>
+          <p class="text-xs font-bold text-muted">Left dot = Left Eye • Right dot = Right Eye • Green = Opened • Red = Discarded</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

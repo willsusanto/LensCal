@@ -86,3 +86,83 @@ export function lensDurationDays(openedAt: string, expiresAt: string) {
   const expires = startOfLocalDay(new Date(expiresAt));
   return Math.max(1, Math.round((expires.getTime() - opened.getTime()) / 86_400_000));
 }
+
+export function toLocalDateKey(value: string | Date): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export interface CalendarDayCell {
+  date: Date;
+  dateKey: string;
+  dayNumber: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+}
+
+export function getCalendarDaysForMonth(year: number, month: number): CalendarDayCell[] {
+  const todayKey = toLocalDateKey(new Date());
+  const firstDayOfMonth = new Date(year, month, 1);
+  const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sun, 1 = Mon...
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: CalendarDayCell[] = [];
+
+  // Padding days from previous month
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    const dayNum = prevMonthDays - i;
+    const date = new Date(year, month - 1, dayNum);
+    const dateKey = toLocalDateKey(date);
+    cells.push({
+      date,
+      dateKey,
+      dayNumber: dayNum,
+      isCurrentMonth: false,
+      isToday: dateKey === todayKey,
+    });
+  }
+
+  // Days in current month
+  for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+    const date = new Date(year, month, dayNum);
+    const dateKey = toLocalDateKey(date);
+    cells.push({
+      date,
+      dateKey,
+      dayNumber: dayNum,
+      isCurrentMonth: true,
+      isToday: dateKey === todayKey,
+    });
+  }
+
+  // Padding days for next month to complete the week row (total cells multiple of 7)
+  const remainingCells = 7 - (cells.length % 7);
+  if (remainingCells < 7) {
+    for (let dayNum = 1; dayNum <= remainingCells; dayNum++) {
+      const date = new Date(year, month + 1, dayNum);
+      const dateKey = toLocalDateKey(date);
+      cells.push({
+        date,
+        dateKey,
+        dayNumber: dayNum,
+        isCurrentMonth: false,
+        isToday: dateKey === todayKey,
+      });
+    }
+  }
+
+  return cells;
+}
+
+export function formatMonthYear(year: number, month: number): string {
+  const date = new Date(year, month, 1);
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
